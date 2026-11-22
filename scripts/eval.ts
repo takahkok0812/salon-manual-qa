@@ -1,15 +1,17 @@
 /**
  * 評価用の質問20件で検索の精度を測る。
  *   npm run eval                 … 検索だけ（埋め込みはBedrockのTitan）
- *   npm run eval -- --answer 3   … 先頭3問だけ、実際にAIに回答させて表示（ANSWER_MODEL_ID が必要）
+ *   npm run eval -- --answer 3   … 答えありの先頭3問と記載なしの全問を、実際にAIに回答させて表示（ANSWER_MODEL_ID が必要）
+ *   EVIDENCE_THRESHOLD=0.25 …    AIを呼ぶ前のふるい分けの下限を変える（既定は DEFAULT_EVIDENCE_THRESHOLD）
  *   EMBEDDER=local npm run eval  … AWSを呼ばずに試す
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { answerWithEvidence, createAnswerer } from "../src/lib/answer";
+import { NO_ANSWER } from "../src/lib/prompt";
 import { createEmbedder } from "../src/lib/embed";
 import { evaluateQuestion, hitRate, suggestThreshold, type EvalQuestion, type EvalRow } from "../src/lib/evaluate";
-import { topK, type StoredChunk } from "../src/lib/search";
+import { DEFAULT_EVIDENCE_THRESHOLD, topK, type StoredChunk } from "../src/lib/search";
 import { buildIndex, INDEX_PATH } from "./build-index";
 
 const K = 3;
@@ -58,12 +60,22 @@ async function main() {
   const n = Number(process.argv[process.argv.indexOf("--answer") + 1] ?? 0);
   if (process.argv.includes("--answer") && n > 0) {
     const answerer = createAnswerer();
-    const threshold = t.threshold ?? 0;
-    console.log(`\n回答の確認（${answerer.name}、しきい値 ${threshold}）`);
-    for (const q of [...questions.slice(0, n), ...questions.filter((x) => x.type === "no_answer").slice(0, 1)]) {
+    const threshold = Number(process.env.EVIDENCE_THRESHOLD ?? DEFAULT_EVIDENCE_THRESHOLD);
+    console.log(`\n回答の確認（${answerer.name}、ふるい分けの下限 ${threshold}）`);
+    const targets = [
+      ...questions.filter((x) => x.type === "answerable").slice(0, n),
+      ...questions.filter((x) => x.type === "no_answer"),
+    ];
+    let ok = 0;
+    for (const q of targets) {
       const res = await answerWithEvidence(answerer, q.question, hitsById.get(q.id)!, threshold);
-      console.log(`\n■ ${q.id} ${q.question}\n${res.text}`);
+      const saidNoAnswer = res.text.includes(NO_ANSWER);
+      const pass = q.type === "no_answer" ? saidNoAnswer : !saidNoAnswer;
+      if (pass) ok++;
+      const how = res.answered ? "AIが判断" : "ふるい分けで除外";
+      console.log(`\n■ ${q.id}（${q.type === "answerable" ? "答えあり" : "記載なし"}／${how}／${pass ? "○" : "×"}）${q.question}\n${res.text}`);
     }
+    console.log(`\n回答の判定：${targets.length}問中${ok}問が期待どおり（記載なしは決まり文句を返せたか、答えありは答えられたか）`);
   }
 }
 

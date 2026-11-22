@@ -47,6 +47,14 @@ export class InMemoryVectorStore implements VectorStore {
 }
 
 /**
+ * AIを呼ぶ前のふるい分けに使う類似度の下限。
+ * Titan v2 の評価では、答えありの最小 0.273 と記載なしの最大 0.341 が重なり、類似度だけでは「記載なし」を判定できなかった。
+ * そこで、ここでは明らかに無関係な質問だけを弾く（AIの呼び出し回数を減らす）低めの値にし、
+ * 「記載なし」の最終判断は、根拠を渡したうえでAI（SYSTEM_PROMPT の指示）に任せる。
+ */
+export const DEFAULT_EVIDENCE_THRESHOLD = 0.2;
+
+/**
  * 根拠になる区切りがあるかどうか。一番近い区切りの類似度が threshold 未満なら「記載なし」として扱う。
  * threshold は評価用の質問セット（samples/eval/questions.json）で調整する。
  */
