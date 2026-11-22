@@ -43,7 +43,7 @@ describe("answerWithEvidence", () => {
 });
 
 describe("評価の流れ（AWSを呼ばない埋め込みで）", () => {
-  it("20問を評価でき、文字の重なりだけでも半分以上は上位3件に入る", async () => {
+  it("全問を評価でき、文字の重なりだけでも半分以上は上位3件に入る", async () => {
     const embedder = new BigramEmbedder();
     const chunks = await loadSampleChunks();
     const items: StoredChunk[] = [];
@@ -54,7 +54,7 @@ describe("評価の流れ（AWSを呼ばない埋め込みで）", () => {
     const rows: EvalRow[] = [];
     for (const q of questions) rows.push(evaluateQuestion(q, topK(items, await embedder.embed(q.question), 3)));
 
-    expect(rows).toHaveLength(20);
+    expect(rows).toHaveLength(questions.length);
     expect(hitRate(rows)).toBeGreaterThanOrEqual(0.5);
   });
 });

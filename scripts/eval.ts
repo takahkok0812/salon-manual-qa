@@ -1,5 +1,5 @@
 /**
- * 評価用の質問20件で検索の精度を測る。
+ * 評価用の質問で検索の精度を測る。
  *   npm run eval                 … 検索だけ（埋め込みはBedrockのTitan）
  *   npm run eval -- --answer 3   … 答えありの先頭3問と記載なしの全問を、実際にAIに回答させて表示（ANSWER_MODEL_ID が必要）
  *   EVIDENCE_THRESHOLD=0.25 …    AIを呼ぶ前のふるい分けの下限を変える（既定は DEFAULT_EVIDENCE_THRESHOLD）

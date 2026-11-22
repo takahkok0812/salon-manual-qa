@@ -53,7 +53,7 @@ describe("サンプルのマニュアル", () => {
     const { questions } = JSON.parse(raw) as {
       questions: { id: string; expected: { doc: string; heading: string }[] }[];
     };
-    expect(questions).toHaveLength(20);
+    expect(questions.length).toBeGreaterThanOrEqual(20);
     for (const q of questions) {
       for (const e of q.expected) {
         const found = chunks.some((c) => c.docId === e.doc && c.heading === e.heading);

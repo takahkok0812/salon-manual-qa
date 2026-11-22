@@ -1,6 +1,6 @@
 {
-  "description": "回答チェック用の質問セット。expected は正解の根拠（文書ファイル名と見出し）。type が no_answer の質問は、マニュアルに記載がないので「記載なし」と答えられれば正解。検索の評価は、expected の文書・見出しが上位3件に入るかで見る。",
-  "version": "2026-11-22",
+  "description": "回答チェック用の質問セット。expected は正解の根拠（文書ファイル名と見出し）。type が no_answer の質問は、マニュアルに記載がないので「記載なし」と答えられれば正解。検索の評価は、expected の文書・見出しが上位3件に入るかで見る。q25・q26 は、話題はマニュアルにあるが聞かれた細部の記載がない質問（AIが推測で答えないかを見る）。",
+  "version": "2026-11-23",
   "questions": [
     { "id": "q01", "type": "answerable", "question": "カラー剤の在庫が施術中に切れたらどうすればいい？", "expected": [{ "doc": "02_薬剤の取り扱い.md", "heading": "3. 在庫と発注" }], "answer_points": ["代わりの色で対応できるか担当が確認", "代わりがなければ店長に報告し近隣店舗から取り寄せ", "間に合わなければ別の色の提案か日程変更", "その日のうちに欠品記録に書く"] },
     { "id": "q02", "type": "answerable", "question": "有給は何日前までに申請が必要？", "expected": [{ "doc": "03_勤怠・休暇.md", "heading": "4. 有給休暇" }], "answer_points": ["取りたい日の2週間前まで", "休暇申請フォームから"] },
@@ -21,6 +21,13 @@
     { "id": "q17", "type": "answerable", "question": "年末に休みを取りたい", "expected": [{ "doc": "03_勤怠・休暇.md", "heading": "4. 有給休暇" }], "answer_points": ["12月20日〜1月5日は繁忙期で有給申請は原則受け付けない"] },
     { "id": "q18", "type": "no_answer", "question": "スタッフの社割は何％？", "expected": [], "answer_points": ["マニュアルに記載がないと答える", "店長か本部に確認するよう案内"] },
     { "id": "q19", "type": "no_answer", "question": "ヘアドネーションの受付はしている？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
-    { "id": "q20", "type": "no_answer", "question": "駐車場は何台停められる？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] }
+    { "id": "q20", "type": "no_answer", "question": "駐車場は何台停められる？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
+    { "id": "q21", "type": "no_answer", "question": "ペットを連れて来店してもいい？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
+    { "id": "q22", "type": "no_answer", "question": "店内のWi-Fiのパスワードは？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
+    { "id": "q23", "type": "no_answer", "question": "誕生日クーポンはある？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
+    { "id": "q24", "type": "no_answer", "question": "子どものカット料金はいくら？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
+    { "id": "q25", "type": "no_answer", "question": "有給休暇は年に何日もらえる？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
+    { "id": "q26", "type": "no_answer", "question": "パッチテストの料金はいくら？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
+    { "id": "q27", "type": "no_answer", "question": "制服は支給される？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] }
   ]
 }

@@ -34,7 +34,7 @@
 
 ## 回答の評価
 
-`samples/eval/questions.json` に20件の質問があります（答えがある17件、マニュアルにない3件）。
+`samples/eval/questions.json` に27件の質問があります（答えがある17件、マニュアルにない10件）。
 正解の文書と見出しが検索の上位3件に入る割合と、記載がない質問で「記載なし」と答えられた割合を測ります。
 
 ## 検索の精度を測る（手元で）
@@ -42,7 +42,7 @@
 ```powershell
 aws login --region ap-southeast-2   # 初回・期限切れのとき
 npm run index                       # サンプル5本を分割し、Bedrock の Titan で埋め込み → .data/index.json
-npm run eval                        # 評価用の質問20件で、正解の見出しが上位3件に入る割合を表示
+npm run eval                        # 評価用の質問27件で、正解の見出しが上位3件に入る割合を表示
 npm run models                      # 回答に使えるモデル（推論プロファイル）のIDを一覧
 $env:ANSWER_MODEL_ID="<上で出たID>"; npm run eval -- --answer 3   # 答えありの先頭3問＋記載なし3問を実際に回答させる
 ```
