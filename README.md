@@ -51,9 +51,11 @@ npm run e2e        # Playwright（ビルドして起動してから実行）
 AWSへのデプロイ（取り込み部分）：
 
 ```bash
-sam build -t infra/template.yaml
-sam deploy --guided   # AlertEmail に予算アラートの通知先を入れる
+sam build
+sam deploy --parameter-overrides AlertEmail=you@example.com
 ```
+
+リージョンはシドニー（ap-southeast-2）です。AWSの無料プランでは、プロジェクトのリージョンがシドニーに固定されるためです（`samconfig.toml`）。Bedrockの Titan Text Embeddings V2 と Claude はシドニーで使えます。
 
 ## ディレクトリ
 
