@@ -63,6 +63,12 @@ Titan で検索の精度は上がりましたが、答えありと記載なし�
 
 回答に使うモデルは `ANSWER_PROVIDER`（`bedrock` または `anthropic`）と `ANSWER_MODEL_ID` で切り替えます。`anthropic` のときは `ANTHROPIC_API_KEY` も設定します。
 
+### 決まったコマンドを、ファイル経由で実行する（任意）
+
+`npm run runner` を起動しておくと、`.data/request.txt` に書かれたジョブを1つずつ実行し、ログを `.data/run-latest.md` に残します。
+実行できるのは `scripts/runner.ps1` に書いた決まったコマンド（pull / ci / index / eval / eval-answer N / models / whoami / check / update）だけです。
+環境変数は `.data/runner.env`（`ANSWER_MODEL_ID=...` などの行）から、許可したキーだけを読み込みます。
+
 ## 開発
 
 ```bash

@@ -12,7 +12,8 @@
     "e2e": "playwright test",
     "index": "tsx scripts/build-index.ts",
     "eval": "tsx scripts/eval.ts",
-    "models": "tsx scripts/models.ts"
+    "models": "tsx scripts/models.ts",
+    "runner": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/runner.ps1"
   },
   "dependencies": {
     "next": "16.4.6",
