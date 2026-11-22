@@ -45,14 +45,19 @@ export class BigramEmbedder implements Embedder {
   constructor(private dims = 256) {}
 
   async embed(text: string): Promise<number[]> {
-    const v = new Array<number>(this.dims).fill(0);
-    const s = text.replace(/\s+/g, "");
-    for (let i = 0; i < s.length - 1; i++) {
-      v[hash(s.slice(i, i + 2)) % this.dims] += 1;
-    }
-    const norm = Math.sqrt(v.reduce((a, x) => a + x * x, 0)) || 1;
-    return v.map((x) => x / norm);
+    return bigramVector(text, this.dims);
   }
+}
+
+/** 文字のbigramの出現回数を固定長に畳み込み、長さ1にそろえる。同じ言葉を含むほど近くなる。 */
+export function bigramVector(text: string, dims = 256): number[] {
+  const v = new Array<number>(dims).fill(0);
+  const s = text.replace(/\s+/g, "");
+  for (let i = 0; i < s.length - 1; i++) {
+    v[hash(s.slice(i, i + 2)) % dims] += 1;
+  }
+  const norm = Math.sqrt(v.reduce((a, x) => a + x * x, 0)) || 1;
+  return v.map((x) => x / norm);
 }
 
 function hash(s: string): number {

@@ -11,8 +11,17 @@ import { answerWithEvidence, createAnswerer } from "../src/lib/answer";
 import { NO_ANSWER } from "../src/lib/prompt";
 import { createEmbedder } from "../src/lib/embed";
 import { evaluateQuestion, hitRate, suggestThreshold, type EvalQuestion, type EvalRow } from "../src/lib/evaluate";
-import { DEFAULT_EVIDENCE_THRESHOLD, topSections, type StoredChunk } from "../src/lib/search";
-import { buildIndex, CHUNK_MODE, INDEX_PATH } from "./build-index";
+import {
+  DEFAULT_EVIDENCE_THRESHOLD,
+  DEFAULT_LEXICAL_WEIGHT,
+  lexicalScores,
+  mixScores,
+  rankSections,
+  semanticScores,
+  type Hit,
+  type StoredChunk,
+} from "../src/lib/search";
+import { buildIndex, INDEX_PATH, indexMode } from "./build-index";
 
 const K = 3;
 /** 実行結果の写し。チャット側から読み取れるよう、毎回ここに上書きで保存する。 */
@@ -26,7 +35,7 @@ function log(text: string) {
 async function loadIndex(expected: string): Promise<StoredChunk[]> {
   try {
     const saved = JSON.parse(await readFile(INDEX_PATH, "utf8")) as { embedder: string; mode?: string; items: StoredChunk[] };
-    if (saved.embedder === expected && (saved.mode ?? "section") === CHUNK_MODE) return saved.items;
+    if (saved.embedder === expected && (saved.mode ?? "section") === indexMode()) return saved.items;
     console.log(`保存済みの索引（${saved.embedder}、${saved.mode ?? "section"}）と設定が違うので作り直します`);
   } catch {
     console.log("索引がないので作ります");
@@ -40,15 +49,23 @@ async function main() {
   const raw = await readFile(path.join(process.cwd(), "samples", "eval", "questions.json"), "utf8");
   const { questions } = JSON.parse(raw) as { questions: EvalQuestion[] };
 
-  const rows: EvalRow[] = [];
-  const hitsById = new Map<string, ReturnType<typeof topSections>>();
+  // 質問ごとに「意味の近さ」と「言葉の重なり」を1回だけ計算し、混ぜ方を変えて比べる
+  const scored: { q: EvalQuestion; semantic: number[]; lexical: number[] }[] = [];
   for (const q of questions) {
-    const hits = topSections(items, await embedder.embed(q.question), K);
-    hitsById.set(q.id, hits);
-    rows.push(evaluateQuestion(q, hits));
+    scored.push({ q, semantic: semanticScores(items, await embedder.embed(q.question)), lexical: lexicalScores(items, q.question) });
   }
+  const runWith = (weight: number) =>
+    scored.map(({ q, semantic, lexical }) => {
+      const hits = rankSections(items, weight > 0 ? mixScores(semantic, lexical, weight) : semantic, K);
+      return { q, hits, row: evaluateQuestion(q, hits) };
+    });
 
-  log(`# 評価結果（${new Date().toLocaleString("ja-JP")}）\n\n埋め込み：${embedder.name}（検索の単位：${CHUNK_MODE}）\n`);
+  const weight = Number(process.env.LEXICAL_WEIGHT ?? DEFAULT_LEXICAL_WEIGHT);
+  const main = runWith(weight);
+  const rows: EvalRow[] = main.map((m) => m.row);
+  const hitsById = new Map<string, Hit[]>(main.map((m) => [m.q.id, m.hits]));
+
+  log(`# 評価結果（${new Date().toLocaleString("ja-JP")}）\n\n埋め込み：${embedder.name}（索引：${indexMode()}、言葉の重なりの比率：${weight}）\n`);
   const table = rows.map((r) => ({
     id: r.id,
     種類: r.type === "answerable" ? "答えあり" : "記載なし",
@@ -65,6 +82,18 @@ async function main() {
   log(
     `類似度：答えありの最小 ${t.minAnswerable.toFixed(3)} ／ 記載なしの最大 ${t.maxNoAnswer.toFixed(3)} → しきい値の候補 ${t.threshold ?? "なし（重なっている）"}`,
   );
+
+  log("\n## 混ぜ方の比較（言葉の重なりの比率）\n");
+  log("| 比率 | 上位3件の正解率 | 外した問題 | 答えありの最小 | 記載なしの最大 | しきい値の候補 |");
+  log("|---|---|---|---|---|---|");
+  for (const w of [0, 0.2, 0.3, 0.4, 0.5]) {
+    const r = runWith(w).map((m) => m.row);
+    const tw = suggestThreshold(r);
+    const missed = r.filter((x) => x.hit === false).map((x) => x.id).join(" ") || "なし";
+    log(
+      `| ${w} | ${(hitRate(r) * 100).toFixed(0)}% | ${missed} | ${tw.minAnswerable.toFixed(3)} | ${tw.maxNoAnswer.toFixed(3)} | ${tw.threshold ?? "なし"} |`,
+    );
+  }
 
   const n = Number(process.argv[process.argv.indexOf("--answer") + 1] ?? 0);
   if (process.argv.includes("--answer") && n > 0) {

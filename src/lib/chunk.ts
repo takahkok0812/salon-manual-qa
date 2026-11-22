@@ -94,7 +94,14 @@ function splitBulletItems(text: string): string[] {
   return items;
 }
 
-/** 埋め込みに渡す文字列。見出しを先頭に付けて、短い区切りでも意味が伝わるようにする。 */
-export function toEmbeddingInput(chunk: Chunk): string {
-  return `${chunk.docTitle} / ${chunk.heading}\n${chunk.text}`;
+export type GlossaryTerm = { term: string; aliases: string[] };
+
+/**
+ * 埋め込みに渡す文字列。見出しを先頭に付けて、短い区切りでも意味が伝わるようにする。
+ * 用語集の用語を含む区切りには、関連語を書き足す（「店販品」の区切りが「シャンプー」の質問で見つかるように）。
+ */
+export function toEmbeddingInput(chunk: Chunk, glossary: GlossaryTerm[] = []): string {
+  const base = `${chunk.docTitle} / ${chunk.heading}\n${chunk.text}`;
+  const related = glossary.filter((g) => chunk.text.includes(g.term)).flatMap((g) => g.aliases);
+  return related.length > 0 ? `${base}\n（関連語：${[...new Set(related)].join("、")}）` : base;
 }

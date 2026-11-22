@@ -25,6 +25,13 @@ describe("splitMarkdown", () => {
     const [c] = splitMarkdown("doc.md", "# 規程\n## 手順\n本文");
     expect(toEmbeddingInput(c)).toBe("規程 / 手順\n本文");
   });
+
+  it("用語集の用語を含む区切りには関連語を書き足し、含まない区切りは変えない", () => {
+    const [a, b] = splitMarkdown("doc.md", "# 規程\n## 会計\n店販品の返品\n## 予約\n電話で受ける");
+    const glossary = [{ term: "店販品", aliases: ["シャンプー", "トリートメント"] }];
+    expect(toEmbeddingInput(a, glossary)).toBe("規程 / 会計\n店販品の返品\n（関連語：シャンプー、トリートメント）");
+    expect(toEmbeddingInput(b, glossary)).toBe("規程 / 予約\n電話で受ける");
+  });
 });
 
 describe("withLineChunks", () => {

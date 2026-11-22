@@ -7,7 +7,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { toEmbeddingInput, withLineChunks } from "../src/lib/chunk";
 import { createEmbedder } from "../src/lib/embed";
-import { loadSampleChunks } from "../src/lib/samples";
+import { loadSampleChunks, loadSampleGlossary } from "../src/lib/samples";
 import type { StoredChunk } from "../src/lib/search";
 
 export const INDEX_PATH = path.join(process.cwd(), ".data", "index.json");
@@ -15,15 +15,21 @@ export const INDEX_PATH = path.join(process.cwd(), ".data", "index.json");
 /** 検索の単位。lines＝見出し＋箇条書き1項目ずつ（既定）、section＝見出しごとだけ（比較用）。 */
 export const CHUNK_MODE = process.env.CHUNK_MODE === "section" ? "section" : "lines";
 
+/** 索引の作り方の識別子。設定を変えたら作り直す判定に使う。 */
+export function indexMode(): string {
+  return `${CHUNK_MODE}${process.env.GLOSSARY === "off" ? "" : "+glossary"}`;
+}
+
 export async function buildIndex(): Promise<{ embedder: string; mode: string; items: StoredChunk[] }> {
   const embedder = createEmbedder();
   const sections = await loadSampleChunks();
   const chunks = CHUNK_MODE === "lines" ? withLineChunks(sections) : sections;
+  const glossary = await loadSampleGlossary();
   const items: StoredChunk[] = [];
   for (const c of chunks) {
-    items.push({ ...c, vector: await embedder.embed(toEmbeddingInput(c)) });
+    items.push({ ...c, vector: await embedder.embed(toEmbeddingInput(c, glossary)) });
   }
-  return { embedder: embedder.name, mode: CHUNK_MODE, items };
+  return { embedder: embedder.name, mode: indexMode(), items };
 }
 
 async function main() {

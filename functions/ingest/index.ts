@@ -6,7 +6,7 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchWriteCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import type { S3Event } from "aws-lambda";
-import { splitMarkdown, toEmbeddingInput, withLineChunks } from "../../src/lib/chunk";
+import { splitMarkdown, toEmbeddingInput, withLineChunks, type GlossaryTerm } from "../../src/lib/chunk";
 import { BedrockTitanEmbedder } from "../../src/lib/embed";
 
 const s3 = new S3Client({});
@@ -14,6 +14,18 @@ const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 const TABLE = process.env.CHUNKS_TABLE!;
 const embedder = new BedrockTitanEmbedder();
+
+/** 用語集は同じバケットの config/glossary.json（なければ使わない）。 */
+const GLOSSARY_KEY = "config/glossary.json";
+
+async function loadGlossary(bucket: string): Promise<GlossaryTerm[]> {
+  try {
+    const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: GLOSSARY_KEY }));
+    return (JSON.parse(await obj.Body!.transformToString("utf-8")) as { terms: GlossaryTerm[] }).terms;
+  } catch {
+    return [];
+  }
+}
 
 export async function handler(event: S3Event): Promise<void> {
   for (const record of event.Records) {
@@ -25,10 +37,11 @@ export async function handler(event: S3Event): Promise<void> {
     const body = await obj.Body!.transformToString("utf-8");
     const docId = key.split("/").at(-1)!;
     const chunks = withLineChunks(splitMarkdown(docId, body));
+    const glossary = await loadGlossary(bucket);
 
     const items = [];
     for (const c of chunks) {
-      items.push({ ...c, vector: await embedder.embed(toEmbeddingInput(c)), updatedAt: new Date().toISOString() });
+      items.push({ ...c, vector: await embedder.embed(toEmbeddingInput(c, glossary)), updatedAt: new Date().toISOString() });
     }
 
     // BatchWrite は25件ずつ

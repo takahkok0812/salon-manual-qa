@@ -1,4 +1,5 @@
-import type { Chunk } from "./chunk";
+import { toEmbeddingInput, type Chunk } from "./chunk";
+import { bigramVector } from "./embed";
 
 export type StoredChunk = Chunk & { vector: number[] };
 export type Hit = { chunk: Chunk; score: number };
@@ -39,14 +40,55 @@ export function topK(items: StoredChunk[], vector: number[], k: number): Hit[] {
  * 返す chunk は親（見出しの全文）、score はまとめた中で一番高い類似度。
  */
 export function topSections(items: StoredChunk[], vector: number[], k: number): Hit[] {
+  return rankSections(items, semanticScores(items, vector), k);
+}
+
+/** 意味の近さ（埋め込みベクトルのコサイン類似度）。items と同じ並び。 */
+export function semanticScores(items: StoredChunk[], vector: number[]): number[] {
+  return items.map((it) => cosineSimilarity(it.vector, vector));
+}
+
+const LEXICAL_DIMS = 1024;
+const lexicalCache = new WeakMap<StoredChunk, number[]>();
+
+/** 言葉の重なり（文字bigramのコサイン類似度）。「返品」のように質問と同じ言葉を含む区切りを拾う。 */
+export function lexicalScores(items: StoredChunk[], question: string): number[] {
+  const q = bigramVector(question, LEXICAL_DIMS);
+  return items.map((it) => {
+    let v = lexicalCache.get(it);
+    if (!v) {
+      v = bigramVector(toEmbeddingInput(it), LEXICAL_DIMS);
+      lexicalCache.set(it, v);
+    }
+    return cosineSimilarity(v, q);
+  });
+}
+
+/** 意味の近さと言葉の重なりを weight（言葉の重なりの比率、0〜1）で混ぜる。 */
+export function mixScores(semantic: number[], lexical: number[], weight: number): number[] {
+  return semantic.map((s, i) => (1 - weight) * s + weight * lexical[i]);
+}
+
+/** 既定の混ぜ方（評価用の質問セットで決めた値。scripts/eval.ts の比較表を参照）。 */
+export const DEFAULT_LEXICAL_WEIGHT = 0;
+
+/** 質問文とその埋め込みから、親の区切りの上位 k 件を返す（意味＋言葉のハイブリッド検索）。 */
+export function hybridSearch(items: StoredChunk[], vector: number[], question: string, k: number, weight = DEFAULT_LEXICAL_WEIGHT): Hit[] {
+  const semantic = semanticScores(items, vector);
+  const scores = weight > 0 ? mixScores(semantic, lexicalScores(items, question), weight) : semantic;
+  return rankSections(items, scores, k);
+}
+
+/** scores（items と同じ並び）の高い順に、親の区切りにまとめて上位 k 件を返す。 */
+export function rankSections(items: StoredChunk[], scores: number[], k: number): Hit[] {
   const byId = new Map(items.map((it) => [it.chunkId, it]));
+  const order = items.map((_, i) => i).sort((a, b) => scores[b] - scores[a]);
   const best = new Map<string, Hit>();
-  for (const { chunk, score } of topK(items, vector, items.length)) {
-    const parentId = chunk.parentId ?? chunk.chunkId;
+  for (const i of order) {
+    const item = items[i];
+    const parentId = item.parentId ?? item.chunkId;
     if (best.has(parentId)) continue;
-    const parent = byId.get(parentId);
-    const parentChunk = parent ? withoutVector(parent) : chunk;
-    best.set(parentId, { chunk: parentChunk, score });
+    best.set(parentId, { chunk: withoutVector(byId.get(parentId) ?? item), score: scores[i] });
     if (best.size >= k) break;
   }
   return [...best.values()];
