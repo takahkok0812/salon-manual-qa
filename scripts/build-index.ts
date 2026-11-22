@@ -5,21 +5,25 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { toEmbeddingInput } from "../src/lib/chunk";
+import { toEmbeddingInput, withLineChunks } from "../src/lib/chunk";
 import { createEmbedder } from "../src/lib/embed";
 import { loadSampleChunks } from "../src/lib/samples";
 import type { StoredChunk } from "../src/lib/search";
 
 export const INDEX_PATH = path.join(process.cwd(), ".data", "index.json");
 
-export async function buildIndex(): Promise<{ embedder: string; items: StoredChunk[] }> {
+/** 検索の単位。lines＝見出し＋箇条書き1項目ずつ（既定）、section＝見出しごとだけ（比較用）。 */
+export const CHUNK_MODE = process.env.CHUNK_MODE === "section" ? "section" : "lines";
+
+export async function buildIndex(): Promise<{ embedder: string; mode: string; items: StoredChunk[] }> {
   const embedder = createEmbedder();
-  const chunks = await loadSampleChunks();
+  const sections = await loadSampleChunks();
+  const chunks = CHUNK_MODE === "lines" ? withLineChunks(sections) : sections;
   const items: StoredChunk[] = [];
   for (const c of chunks) {
     items.push({ ...c, vector: await embedder.embed(toEmbeddingInput(c)) });
   }
-  return { embedder: embedder.name, items };
+  return { embedder: embedder.name, mode: CHUNK_MODE, items };
 }
 
 async function main() {
@@ -27,7 +31,7 @@ async function main() {
   const index = await buildIndex();
   await mkdir(path.dirname(INDEX_PATH), { recursive: true });
   await writeFile(INDEX_PATH, JSON.stringify(index));
-  console.log(`取り込み完了：${index.items.length}件（${index.embedder}、${((Date.now() - started) / 1000).toFixed(1)}秒）→ ${INDEX_PATH}`);
+  console.log(`取り込み完了：${index.items.length}件（${index.embedder}、${index.mode}、${((Date.now() - started) / 1000).toFixed(1)}秒）→ ${INDEX_PATH}`);
 }
 
 if (process.argv[1]?.endsWith("build-index.ts")) {

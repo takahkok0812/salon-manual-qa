@@ -11,8 +11,8 @@ import { answerWithEvidence, createAnswerer } from "../src/lib/answer";
 import { NO_ANSWER } from "../src/lib/prompt";
 import { createEmbedder } from "../src/lib/embed";
 import { evaluateQuestion, hitRate, suggestThreshold, type EvalQuestion, type EvalRow } from "../src/lib/evaluate";
-import { DEFAULT_EVIDENCE_THRESHOLD, topK, type StoredChunk } from "../src/lib/search";
-import { buildIndex, INDEX_PATH } from "./build-index";
+import { DEFAULT_EVIDENCE_THRESHOLD, topSections, type StoredChunk } from "../src/lib/search";
+import { buildIndex, CHUNK_MODE, INDEX_PATH } from "./build-index";
 
 const K = 3;
 /** 実行結果の写し。チャット側から読み取れるよう、毎回ここに上書きで保存する。 */
@@ -25,9 +25,9 @@ function log(text: string) {
 
 async function loadIndex(expected: string): Promise<StoredChunk[]> {
   try {
-    const saved = JSON.parse(await readFile(INDEX_PATH, "utf8")) as { embedder: string; items: StoredChunk[] };
-    if (saved.embedder === expected) return saved.items;
-    console.log(`保存済みの索引（${saved.embedder}）と埋め込みが違うので作り直します`);
+    const saved = JSON.parse(await readFile(INDEX_PATH, "utf8")) as { embedder: string; mode?: string; items: StoredChunk[] };
+    if (saved.embedder === expected && (saved.mode ?? "section") === CHUNK_MODE) return saved.items;
+    console.log(`保存済みの索引（${saved.embedder}、${saved.mode ?? "section"}）と設定が違うので作り直します`);
   } catch {
     console.log("索引がないので作ります");
   }
@@ -41,14 +41,14 @@ async function main() {
   const { questions } = JSON.parse(raw) as { questions: EvalQuestion[] };
 
   const rows: EvalRow[] = [];
-  const hitsById = new Map<string, ReturnType<typeof topK>>();
+  const hitsById = new Map<string, ReturnType<typeof topSections>>();
   for (const q of questions) {
-    const hits = topK(items, await embedder.embed(q.question), K);
+    const hits = topSections(items, await embedder.embed(q.question), K);
     hitsById.set(q.id, hits);
     rows.push(evaluateQuestion(q, hits));
   }
 
-  log(`# 評価結果（${new Date().toLocaleString("ja-JP")}）\n\n埋め込み：${embedder.name}\n`);
+  log(`# 評価結果（${new Date().toLocaleString("ja-JP")}）\n\n埋め込み：${embedder.name}（検索の単位：${CHUNK_MODE}）\n`);
   const table = rows.map((r) => ({
     id: r.id,
     種類: r.type === "answerable" ? "答えあり" : "記載なし",

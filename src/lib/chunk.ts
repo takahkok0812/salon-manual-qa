@@ -9,6 +9,8 @@ export type Chunk = {
   text: string;
   /** docId と heading から作る一意なID */
   chunkId: string;
+  /** 箇条書き1項目の区切りのとき、元になった見出しの区切りのID（検索ではこの親の全文をAIに渡す） */
+  parentId?: string;
 };
 
 /**
@@ -64,6 +66,32 @@ function splitByLength(text: string, maxChars: number): string[] {
   }
   if (current) out.push(current);
   return out;
+}
+
+/**
+ * 見出しの区切りに加えて、箇条書き1項目ごとの小さな区切りも作る（検索用）。
+ * 見出しの中に話題が複数あると、1項目の話題が他に埋もれて検索で拾えないため。
+ * 小さな区切りで探し、AIには親の区切り（見出しの全文）を渡す（search.ts の topSections）。
+ */
+export function withLineChunks(chunks: Chunk[]): Chunk[] {
+  const out: Chunk[] = [];
+  for (const c of chunks) {
+    out.push(c);
+    const items = splitBulletItems(c.text);
+    if (items.length < 2) continue;
+    items.forEach((text, i) => out.push({ ...c, text, chunkId: `${c.chunkId}::${i + 1}`, parentId: c.chunkId }));
+  }
+  return out;
+}
+
+/** 行頭の「- 」「1. 」で始まる項目に分ける。字下げされた続きの行は直前の項目に含める。 */
+function splitBulletItems(text: string): string[] {
+  const items: string[] = [];
+  for (const line of text.split("\n")) {
+    if (/^(-|\d+\.)\s/.test(line)) items.push(line);
+    else if (/^\s+\S/.test(line) && items.length > 0) items[items.length - 1] += `\n${line}`;
+  }
+  return items;
 }
 
 /** 埋め込みに渡す文字列。見出しを先頭に付けて、短い区切りでも意味が伝わるようにする。 */

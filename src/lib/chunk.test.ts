@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { splitMarkdown, toEmbeddingInput } from "./chunk";
+import { splitMarkdown, toEmbeddingInput, withLineChunks } from "./chunk";
 import { loadSampleChunks, SAMPLES_DIR } from "./samples";
 
 describe("splitMarkdown", () => {
@@ -24,6 +24,18 @@ describe("splitMarkdown", () => {
   it("埋め込みの入力には文書名と見出しが入る", () => {
     const [c] = splitMarkdown("doc.md", "# 規程\n## 手順\n本文");
     expect(toEmbeddingInput(c)).toBe("規程 / 手順\n本文");
+  });
+});
+
+describe("withLineChunks", () => {
+  it("箇条書きが2項目以上ある区切りは、項目ごとの小さな区切りも作り、親のIDを持たせる", () => {
+    const md = "# 規程\n## 会計\n- 支払いは現金\n- 返品は14日以内\n  レシートが必要\n## 一言\n- 1項目だけ";
+    const chunks = withLineChunks(splitMarkdown("doc.md", md));
+    const children = chunks.filter((c) => c.parentId);
+    expect(children.map((c) => c.text)).toEqual(["- 支払いは現金", "- 返品は14日以内\n  レシートが必要"]);
+    expect(children.every((c) => c.parentId === "doc.md::会計" && c.heading === "会計")).toBe(true);
+    expect(new Set(chunks.map((c) => c.chunkId)).size).toBe(chunks.length);
+    expect(chunks.filter((c) => c.heading === "一言")).toHaveLength(1);
   });
 });
 

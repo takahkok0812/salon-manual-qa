@@ -34,6 +34,30 @@ export function topK(items: StoredChunk[], vector: number[], k: number): Hit[] {
     .slice(0, k);
 }
 
+/**
+ * 小さな区切り（箇条書き1項目）も含めて似ている順に並べ、親の区切りにまとめて上位 k 件を返す。
+ * 返す chunk は親（見出しの全文）、score はまとめた中で一番高い類似度。
+ */
+export function topSections(items: StoredChunk[], vector: number[], k: number): Hit[] {
+  const byId = new Map(items.map((it) => [it.chunkId, it]));
+  const best = new Map<string, Hit>();
+  for (const { chunk, score } of topK(items, vector, items.length)) {
+    const parentId = chunk.parentId ?? chunk.chunkId;
+    if (best.has(parentId)) continue;
+    const parent = byId.get(parentId);
+    const parentChunk = parent ? withoutVector(parent) : chunk;
+    best.set(parentId, { chunk: parentChunk, score });
+    if (best.size >= k) break;
+  }
+  return [...best.values()];
+}
+
+function withoutVector(item: StoredChunk): Chunk {
+  const chunk: Chunk & { vector?: number[] } = { ...item };
+  delete chunk.vector;
+  return chunk;
+}
+
 export class InMemoryVectorStore implements VectorStore {
   private items = new Map<string, StoredChunk>();
 
@@ -42,7 +66,7 @@ export class InMemoryVectorStore implements VectorStore {
   }
 
   async query(vector: number[], k: number): Promise<Hit[]> {
-    return topK([...this.items.values()], vector, k);
+    return topSections([...this.items.values()], vector, k);
   }
 }
 

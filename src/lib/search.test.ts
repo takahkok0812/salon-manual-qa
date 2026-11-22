@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StoredChunk } from "./search";
-import { cosineSimilarity, hasEvidence, InMemoryVectorStore } from "./search";
+import { cosineSimilarity, hasEvidence, InMemoryVectorStore, topSections } from "./search";
 import { buildUserPrompt, NO_ANSWER, SYSTEM_PROMPT } from "./prompt";
 
 const chunk = (id: string, vector: number[]): StoredChunk => ({
@@ -31,6 +31,20 @@ describe("InMemoryVectorStore", () => {
     const hits = await store.query([1, 0], 2);
     expect(hits.map((h) => h.chunk.chunkId)).toEqual(["a", "b"]);
     expect(hits[0]).not.toHaveProperty("chunk.vector");
+  });
+});
+
+describe("topSections", () => {
+  it("小さな区切りで当たったら親の区切りを返し、同じ親は1件にまとめる", () => {
+    const parent = chunk("p", [0, 1]);
+    const childA = { ...chunk("p::1", [1, 0]), parentId: "p", text: "項目A" };
+    const childB = { ...chunk("p::2", [0.9, 0.1]), parentId: "p", text: "項目B" };
+    const other = chunk("o", [0.7, 0.7]);
+    const hits = topSections([parent, childA, childB, other], [1, 0], 2);
+    expect(hits.map((h) => h.chunk.chunkId)).toEqual(["p", "o"]);
+    expect(hits[0].chunk.text).toBe("本文p");
+    expect(hits[0].score).toBeCloseTo(1);
+    expect("vector" in hits[0].chunk).toBe(false);
   });
 });
 

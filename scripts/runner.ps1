@@ -20,7 +20,7 @@ $Request = Join-Path $Data "request.txt"
 $Running = Join-Path $Data "request.running"
 $Log = Join-Path $Data "run-latest.md"
 $EnvFile = Join-Path $Data "runner.env"
-$AllowedEnv = @("ANSWER_PROVIDER", "ANSWER_MODEL_ID", "EMBED_MODEL_ID", "EMBEDDER", "EVIDENCE_THRESHOLD")
+$AllowedEnv = @("ANSWER_PROVIDER", "ANSWER_MODEL_ID", "EMBED_MODEL_ID", "EMBEDDER", "EVIDENCE_THRESHOLD", "CHUNK_MODE")
 
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
 Set-Location $Root

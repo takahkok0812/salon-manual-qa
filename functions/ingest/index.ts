@@ -6,7 +6,7 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchWriteCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import type { S3Event } from "aws-lambda";
-import { splitMarkdown, toEmbeddingInput } from "../../src/lib/chunk";
+import { splitMarkdown, toEmbeddingInput, withLineChunks } from "../../src/lib/chunk";
 import { BedrockTitanEmbedder } from "../../src/lib/embed";
 
 const s3 = new S3Client({});
@@ -24,7 +24,7 @@ export async function handler(event: S3Event): Promise<void> {
     const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     const body = await obj.Body!.transformToString("utf-8");
     const docId = key.split("/").at(-1)!;
-    const chunks = splitMarkdown(docId, body);
+    const chunks = withLineChunks(splitMarkdown(docId, body));
 
     const items = [];
     for (const c of chunks) {
