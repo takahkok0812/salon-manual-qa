@@ -3,31 +3,17 @@
  * 雛形の段階。AWS上での動作確認は週末1（11/28・29）に行う。
  */
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchWriteCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import type { S3Event } from "aws-lambda";
 import { splitMarkdown, toEmbeddingInput } from "../../src/lib/chunk";
+import { BedrockTitanEmbedder } from "../../src/lib/embed";
 
 const s3 = new S3Client({});
-const bedrock = new BedrockRuntimeClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 const TABLE = process.env.CHUNKS_TABLE!;
-const EMBED_MODEL_ID = process.env.EMBED_MODEL_ID ?? "amazon.titan-embed-text-v2:0";
-
-export async function embed(text: string): Promise<number[]> {
-  const res = await bedrock.send(
-    new InvokeModelCommand({
-      modelId: EMBED_MODEL_ID,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify({ inputText: text, dimensions: 512, normalize: true }),
-    }),
-  );
-  const json = JSON.parse(new TextDecoder().decode(res.body)) as { embedding: number[] };
-  return json.embedding;
-}
+const embedder = new BedrockTitanEmbedder();
 
 export async function handler(event: S3Event): Promise<void> {
   for (const record of event.Records) {
@@ -42,7 +28,7 @@ export async function handler(event: S3Event): Promise<void> {
 
     const items = [];
     for (const c of chunks) {
-      items.push({ ...c, vector: await embed(toEmbeddingInput(c)), updatedAt: new Date().toISOString() });
+      items.push({ ...c, vector: await embedder.embed(toEmbeddingInput(c)), updatedAt: new Date().toISOString() });
     }
 
     // BatchWrite は25件ずつ

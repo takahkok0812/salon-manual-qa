@@ -9,7 +9,7 @@
 | 機能 | 状態 |
 | --- | --- |
 | マニュアル（Markdown・テキスト）の取り込み：分割 → 埋め込み → 保存 | 分割と検索の処理・テストまで。AWS上での取り込みは雛形 |
-| 質問への回答：関連箇所を検索し、Claudeが根拠の番号つきで回答 | プロンプトまで |
+| 質問への回答：関連箇所を検索し、Claudeが根拠の番号つきで回答 | 回答処理と評価スクリプトまで（画面は未着手） |
 | 根拠がないときは「記載なし」と答え、未解決として記録 | 判定処理まで |
 | 公開デモ用：サンプル質問の回答をあらかじめ生成して保存し、表示する | 未着手 |
 | 回答への「役に立った／立たなかった」 | 未着手 |
@@ -36,6 +36,21 @@
 
 `samples/eval/questions.json` に20件の質問があります（答えがある17件、マニュアルにない3件）。
 正解の文書と見出しが検索の上位3件に入る割合と、記載がない質問で「記載なし」と答えられた割合を測ります。
+
+## 検索の精度を測る（手元で）
+
+```powershell
+aws login --region ap-southeast-2   # 初回・期限切れのとき
+npm run index                       # サンプル5本を分割し、Bedrock の Titan で埋め込み → .data/index.json
+npm run eval                        # 評価用の質問20件で、正解の見出しが上位3件に入る割合を表示
+npm run models                      # 回答に使えるモデル（推論プロファイル）のIDを一覧
+$env:ANSWER_MODEL_ID="<上で出たID>"; npm run eval -- --answer 3   # 先頭3問だけ実際に回答させる
+```
+
+AWSを呼ばずに流れだけ試すときは `$env:EMBEDDER="local"` を付けます（文字の並びだけで比べる簡易版）。
+簡易版の結果は、上位3件の正解率 82%（17問中14問）で、記載がない質問との区別はできませんでした。Titan の埋め込みでどこまで上がるかを比べます。
+
+回答に使うモデルは `ANSWER_PROVIDER`（`bedrock` または `anthropic`）と `ANSWER_MODEL_ID` で切り替えます。`anthropic` のときは `ANTHROPIC_API_KEY` も設定します。
 
 ## 開発
 
@@ -64,6 +79,10 @@ src/app/             画面（Next.js）
 src/lib/chunk.ts     Markdownを見出しごとに分割
 src/lib/search.ts    類似度計算・検索の差し替え口・根拠の有無の判定
 src/lib/prompt.ts    Claudeに渡すプロンプト
+src/lib/embed.ts     埋め込み（Bedrock Titan／AWSを呼ばない簡易版）
+src/lib/answer.ts    回答（Bedrock Converse／Claude API）と、根拠がないときはAIを呼ばない処理
+src/lib/evaluate.ts  検索の評価（上位k件の正解率・しきい値の候補）
+scripts/             索引づくり・評価・モデル一覧のスクリプト
 functions/ingest/    取り込み用Lambda
 infra/template.yaml  AWS SAMのテンプレート
 samples/manuals/     サンプルのマニュアル（架空）
