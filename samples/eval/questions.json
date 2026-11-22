@@ -1,0 +1,26 @@
+{
+  "description": "回答チェック用の質問セット。expected は正解の根拠（文書ファイル名と見出し）。type が no_answer の質問は、マニュアルに記載がないので「記載なし」と答えられれば正解。検索の評価は、expected の文書・見出しが上位3件に入るかで見る。",
+  "version": "2026-11-22",
+  "questions": [
+    { "id": "q01", "type": "answerable", "question": "カラー剤の在庫が施術中に切れたらどうすればいい？", "expected": [{ "doc": "02_薬剤の取り扱い.md", "heading": "3. 在庫と発注" }], "answer_points": ["代わりの色で対応できるか担当が確認", "代わりがなければ店長に報告し近隣店舗から取り寄せ", "間に合わなければ別の色の提案か日程変更", "その日のうちに欠品記録に書く"] },
+    { "id": "q02", "type": "answerable", "question": "有給は何日前までに申請が必要？", "expected": [{ "doc": "03_勤怠・休暇.md", "heading": "4. 有給休暇" }], "answer_points": ["取りたい日の2週間前まで", "休暇申請フォームから"] },
+    { "id": "q03", "type": "answerable", "question": "お客様が20分遅れて来た。どう対応する？", "expected": [{ "doc": "01_予約・受付.md", "heading": "3. 遅刻への対応" }], "answer_points": ["15分以上の遅刻はメニュー短縮か日程変更をお願いする", "どちらにするかは担当スタイリストが判断しお客様に選んでもらう"] },
+    { "id": "q04", "type": "answerable", "question": "キャンセル料はかかりますか？", "expected": [{ "doc": "01_予約・受付.md", "heading": "4. キャンセルと変更" }], "answer_points": ["前日19:00までは無料", "それ以降もキャンセル料は取らない", "無断キャンセル2回でカード登録をお願いする"] },
+    { "id": "q05", "type": "answerable", "question": "パッチテストはいつやる？", "expected": [{ "doc": "02_薬剤の取り扱い.md", "heading": "2. パッチテスト" }], "answer_points": ["施術の48時間前", "初めてのカラーか前回から半年以上あいたお客様が対象"] },
+    { "id": "q06", "type": "answerable", "question": "開けたカラー剤はいつまで使える？", "expected": [{ "doc": "02_薬剤の取り扱い.md", "heading": "1. 保管" }], "answer_points": ["開封後3か月を過ぎたら使わない", "開封日を書いておく"] },
+    { "id": "q07", "type": "answerable", "question": "薬剤の発注の締め切りは？", "expected": [{ "doc": "02_薬剤の取り扱い.md", "heading": "3. 在庫と発注" }], "answer_points": ["毎週月曜12:00締め", "木曜に届く", "薬剤発注シートに記入"] },
+    { "id": "q08", "type": "answerable", "question": "仕上がりが気に入らないと言われた。無料で直せる？", "expected": [{ "doc": "04_クレーム対応.md", "heading": "2. お直し" }], "answer_points": ["施術から7日以内は無料でお直し", "7日を過ぎたら店長が判断"] },
+    { "id": "q09", "type": "answerable", "question": "お客様に返金してもいいですか？", "expected": [{ "doc": "04_クレーム対応.md", "heading": "3. 返金" }], "answer_points": ["返金は店長の判断", "スタッフ個人で約束しない", "上限は施術代金の全額"] },
+    { "id": "q10", "type": "answerable", "question": "買ったシャンプーを返品したいと言われた", "expected": [{ "doc": "01_予約・受付.md", "heading": "6. 会計" }], "answer_points": ["未開封でレシートがあること", "購入から14日以内"] },
+    { "id": "q11", "type": "answerable", "question": "クレームの報告はいつまでに誰に出す？", "expected": [{ "doc": "04_クレーム対応.md", "heading": "4. 報告" }], "answer_points": ["24時間以内", "クレーム報告フォームで本部へ", "かぶれ・けがの可能性があれば別に店舗運営課へすぐ電話"] },
+    { "id": "q12", "type": "answerable", "question": "口コミに悪く書かれた。自分で返信していい？", "expected": [{ "doc": "04_クレーム対応.md", "heading": "6. 口コミへの返信" }], "answer_points": ["返信は店長が行う", "スタッフ個人のアカウントで返信しない", "3日以内に返信"] },
+    { "id": "q13", "type": "answerable", "question": "ハサミの消毒は何でどのくらいの頻度？", "expected": [{ "doc": "05_衛生管理.md", "heading": "1. 道具の消毒" }], "answer_points": ["お客様ごと", "アルコールで拭いて消毒"] },
+    { "id": "q14", "type": "answerable", "question": "熱があるときは出勤していい？", "expected": [{ "doc": "05_衛生管理.md", "heading": "5. スタッフの体調管理" }, { "doc": "03_勤怠・休暇.md", "heading": "3. 遅刻・欠勤の連絡" }], "answer_points": ["37.5℃以上は出勤しない", "店長に電話で連絡"] },
+    { "id": "q15", "type": "answerable", "question": "シフトの希望はいつまでに出す？", "expected": [{ "doc": "03_勤怠・休暇.md", "heading": "1. シフト" }], "answer_points": ["前月の20日まで", "共有スプレッドシートのシフト表に入力"] },
+    { "id": "q16", "type": "answerable", "question": "打刻を忘れたらどうする？", "expected": [{ "doc": "03_勤怠・休暇.md", "heading": "2. 出勤と打刻" }], "answer_points": ["その日のうちに打刻修正フォームで申請"] },
+    { "id": "q17", "type": "answerable", "question": "年末に休みを取りたい", "expected": [{ "doc": "03_勤怠・休暇.md", "heading": "4. 有給休暇" }], "answer_points": ["12月20日〜1月5日は繁忙期で有給申請は原則受け付けない"] },
+    { "id": "q18", "type": "no_answer", "question": "スタッフの社割は何％？", "expected": [], "answer_points": ["マニュアルに記載がないと答える", "店長か本部に確認するよう案内"] },
+    { "id": "q19", "type": "no_answer", "question": "ヘアドネーションの受付はしている？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] },
+    { "id": "q20", "type": "no_answer", "question": "駐車場は何台停められる？", "expected": [], "answer_points": ["マニュアルに記載がないと答える"] }
+  ]
+}
