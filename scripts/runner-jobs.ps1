@@ -22,6 +22,7 @@ function Get-JobCommands([string]$name, [string]$arg) {
     "sam-deploy"  { return ,@("set PYTHONUTF8=1&& sam build", "set PYTHONUTF8=1&& sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides AlertEmail=%ALERT_EMAIL%") }
     "aws-upload"  { return ,@("npm run aws:upload") }
     "aws-status"  { return ,@("npm run aws:status") }
+    "ask-check"   { return ,@("npm run ask:check") }
     "check"       { return ,@("npm run lint", "npm run typecheck", "npm test") }
     "update"      { return ,@("git pull --ff-only", "npm ci") }
     default       { return $null }

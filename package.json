@@ -16,6 +16,7 @@
     "demo:build": "tsx scripts/build-demo.ts",
     "aws:upload": "tsx scripts/aws-samples.ts upload",
     "aws:status": "tsx scripts/aws-samples.ts status",
+    "ask:check": "tsx scripts/ask-check.ts",
     "runner": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/runner.ps1"
   },
   "dependencies": {
