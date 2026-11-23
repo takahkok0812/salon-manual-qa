@@ -1,6 +1,6 @@
 version = 0.1
 
-# AWSの無料プランではプロジェクトのリージョンがシドニー（ap-southeast-2）に固定されるため、ここに合わせる
+# AWS Free plan fixes the project region to Sydney (ap-southeast-2). Keep this file ASCII: SAM CLI on Japanese Windows reads it as cp932.
 [default.global.parameters]
 region = "ap-southeast-2"
 
