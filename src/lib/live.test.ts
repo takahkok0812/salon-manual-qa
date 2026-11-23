@@ -62,3 +62,19 @@ describe("ask", () => {
     expect(r.answer).toMatch(/\[1\]$/);
   });
 });
+
+describe("question log", async () => {
+  const { MemoryQuestionLog } = await import("./question-log");
+  it("記載なしと「役に立たなかった」だけを新しい順に返し、評価は本人の質問にだけつけられる", async () => {
+    const log = new MemoryQuestionLog();
+    const base = { role: "staff" as const, decidedBy: "ai" as const, headings: [] };
+    const a = await log.add({ ...base, user: "u1", question: "社割は？", noAnswer: true });
+    const b = await log.add({ ...base, user: "u1", question: "有給は？", noAnswer: false });
+    await log.add({ ...base, user: "u2", question: "シフトは？", noAnswer: false });
+    expect(await log.setFeedback(b.questionId, "u2", false)).toBe(false);
+    expect(await log.setFeedback(b.questionId, "u1", false)).toBe(true);
+    expect(await log.setFeedback("q#none", "u1", true)).toBe(false);
+    const list = await log.listUnresolved(10);
+    expect(list.map((r) => r.questionId).sort()).toEqual([a.questionId, b.questionId].sort());
+  });
+});

@@ -9,7 +9,8 @@ import styles from "./live-chat.module.css";
 
 const ROLE_LABEL: Record<Role, string> = { staff: "スタッフ", manager: "店長" };
 
-type Entry = AskResult & { id: string };
+type Entry = AskResult & { id: string; questionId: string; feedback?: boolean };
+type Unresolved = { questionId: string; question: string; noAnswer: boolean; helpful?: boolean; createdAt: string };
 
 export function LiveChat() {
   const [role, setRole] = useState<Role | null | undefined>(undefined);
@@ -18,17 +19,41 @@ export function LiveChat() {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [unresolved, setUnresolved] = useState<Unresolved[] | null>(null);
+
+  const loadUnresolved = async () => {
+    const res = await fetch("/api/unresolved");
+    if (res.ok) setUnresolved(((await res.json()) as { items: Unresolved[] }).items);
+  };
+
+  const sendFeedback = async (entry: Entry, helpful: boolean) => {
+    const res = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ questionId: entry.questionId, helpful }),
+    });
+    if (res.ok) {
+      setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, feedback: helpful } : e)));
+      if (role === "manager") loadUnresolved();
+    }
+  };
 
   useEffect(() => {
     fetch("/api/session")
       .then((r) => r.json())
-      .then((j: { role: Role | null }) => setRole(j.role))
+      .then((j: { role: Role | null }) => {
+        setRole(j.role);
+        if (j.role === "manager") loadUnresolved();
+      })
       .catch(() => setRole(null));
   }, []);
 
   const login = async (r: Role) => {
     const res = await fetch("/api/session", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ role: r }) });
-    if (res.ok) setRole(r);
+    if (res.ok) {
+      setRole(r);
+      if (r === "manager") loadUnresolved();
+    }
   };
 
   const logout = async () => {
@@ -52,9 +77,10 @@ export function LiveChat() {
         if (res.status === 401) setRole(null);
         return;
       }
-      setEntries((prev) => [{ ...(j as AskResult), id: `live-${Date.now()}` }, ...prev]);
+      setEntries((prev) => [{ ...(j as AskResult & { questionId: string }), id: `live-${Date.now()}` }, ...prev]);
       setRemaining(j.remaining);
       setQuestion("");
+      if (role === "manager") loadUnresolved();
     } catch {
       setError("通信に失敗しました。時間をおいて試してください");
     } finally {
@@ -121,9 +147,48 @@ export function LiveChat() {
         {entries.map((e) => (
           <div key={e.id} className={demoStyles.chat} style={{ position: "static" }}>
             <AnswerView item={e} />
+            <div className={styles.feedback} role="group" aria-label="この回答の評価">
+              {e.feedback === undefined ? (
+                <>
+                  <span>この回答は</span>
+                  <button type="button" onClick={() => sendFeedback(e, true)}>
+                    役に立った
+                  </button>
+                  <button type="button" onClick={() => sendFeedback(e, false)}>
+                    役に立たなかった
+                  </button>
+                </>
+              ) : (
+                <span>評価を記録しました（{e.feedback ? "役に立った" : "役に立たなかった"}）</span>
+              )}
+            </div>
           </div>
         ))}
       </section>
+
+      {role === "manager" && (
+        <section className={styles.unresolved} aria-label="答えられなかった質問">
+          <div className={styles.unresolvedHead}>
+            <h2>答えられなかった質問（店長だけ）</h2>
+            <button type="button" onClick={loadUnresolved}>
+              更新
+            </button>
+          </div>
+          <p>「記載なし」になった質問と「役に立たなかった」がついた回答です。マニュアルに足すべきことの候補になります。</p>
+          {unresolved === null ? null : unresolved.length === 0 ? (
+            <p className={demoStyles.empty}>まだありません。</p>
+          ) : (
+            <ul>
+              {unresolved.map((u) => (
+                <li key={u.questionId}>
+                  <span className={styles.tag}>{u.noAnswer ? "記載なし" : "役に立たなかった"}</span>
+                  {u.question}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </section>
   );
 }
