@@ -3,6 +3,7 @@
 美容室の社内マニュアルに、**根拠を示して答える**AIチャットのデモです。マニュアルにないことは推測せず「記載なし」と答えます。
 
 **公開デモ：https://takahkok0812.github.io/salon-manual-qa/**（質問を選ぶと、根拠つきの回答と「記載なし」の判断を表示します）
+**ログインして自由に質問：https://main.d1viy15doium1g.amplifyapp.com/chat**（デモ用アカウントで入れます。実際にAIが答えるため、1人1日5回・全体で1日30回まで）
 
 ![質問を選ぶと、根拠の番号つきで回答し、マニュアルにない質問には「記載なし」と答える](docs/demo.gif)
 
@@ -17,14 +18,14 @@
 | 質問への回答：関連箇所を検索し、AIが根拠の番号つきで回答 | 済み（評価27問で期待どおり27問） |
 | 根拠がないときは「記載なし」と答える | 済み（ふるい分け＋AIの判断の2段階） |
 | 公開デモ：事前に作った回答を、根拠と一緒に表示する | 済み（GitHub Pages） |
-| 自由な質問（ログインした人だけ、1日数回まで） | 手元で動作（デモ用2ロールのログイン、1日の回数制限、E2Eテスト）。AWSへの公開は次 |
-| 回答への「役に立った／立たなかった」、未解決の質問の記録 | 手元で動作（質問ログはDynamoDB、90日で自動削除。店長だけが一覧を見られる） |
+| 自由な質問（ログインした人だけ、1日数回まで） | 済み（AWS Amplify。1人1日5回・全体で1日30回） |
+| 回答への「役に立った／立たなかった」、未解決の質問の記録 | 済み（質問ログはDynamoDB、90日で自動削除。店長だけが一覧を見られる） |
 | 管理画面：文書の一覧・削除、質問ログ、未解決の質問 | 未着手 |
 | ログイン：スタッフ／店長の2ロール | 済み（HS256のJWTをHttpOnly Cookieに保存。管理画面の権限分けは次） |
 
 ## 構成
 
-- 画面とAPI：Next.js（App Router・TypeScript）。公開デモは静的に書き出して GitHub Pages で配信、ログイン後の画面とAPIは AWS Amplify Hosting の予定
+- 画面とAPI：Next.js（App Router・TypeScript）。公開デモは静的に書き出して GitHub Pages で配信、ログイン後の画面とAPIは AWS Amplify Hosting（`amplify.yml`、サーバー処理のロールは `infra/template.yaml` の AmplifyComputeRole）
 - 回答：Amazon Bedrock（モデルは切り替え式。公開デモの回答は Nova Pro）
 - 埋め込み：Amazon Bedrock の Titan Text Embeddings V2
 - 保存：原本は S3、分割した文書・埋め込み・質問ログは DynamoDB

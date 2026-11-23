@@ -5,12 +5,14 @@ import styles from "./page.module.css";
 import { QaDemo } from "./qa-demo";
 
 const REPO_URL = "https://github.com/takahkok0812/salon-manual-qa";
+/** ログイン後の画面は AWS Amplify で配信している（GitHub Pages の静的版からはこちらへリンクする） */
+const LIVE_CHAT_URL = "https://main.d1viy15doium1g.amplifyapp.com/chat";
 
 export default async function Home() {
   const { docTitles, chunkCount } = await getSampleSummary();
   const data = demo as DemoData;
-  // 静的書き出し（GitHub Pages）にはログイン後の画面がないので、リンクを出さない
-  const hasLive = process.env.GITHUB_PAGES !== "1";
+  // 静的書き出し（GitHub Pages）にはログイン後の画面がないので、Amplify 版へリンクする
+  const chatHref = process.env.GITHUB_PAGES === "1" ? LIVE_CHAT_URL : "/chat";
 
   return (
     <main className={styles.main}>
@@ -43,13 +45,11 @@ export default async function Home() {
             回答の作成：{new Date(data.generatedAt).toLocaleDateString("ja-JP")}（回答モデル {data.answerModel.replace(/^bedrock:/, "")}）
           </p>
         )}
-        {hasLive && (
-          <p>
-            <a className={styles.link} href="/chat">
-              ログインして自由に質問する（1日の回数制限あり）
-            </a>
-          </p>
-        )}
+        <p>
+          <a className={styles.link} href={chatHref}>
+            ログインして自由に質問する（実際にAIが答えます。1日の回数制限あり）
+          </a>
+        </p>
         <p>
           <a className={styles.link} href={REPO_URL}>
             ソースコードと評価の結果（GitHub）
