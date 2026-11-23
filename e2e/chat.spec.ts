@@ -59,3 +59,35 @@ test("スタッフには答えられなかった質問の一覧が出ず、API�
   await expect(page.getByRole("heading", { name: "答えられなかった質問（店長だけ）" })).toHaveCount(0);
   expect((await page.request.get("/api/unresolved")).status()).toBe(403);
 });
+
+test("店長がアップロードした文書は本人の質問にだけ使われ、削除できる。スタッフは文書管理を使えない", async ({ page, browser }) => {
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "店長で入る" }).click();
+  const panel = page.getByRole("region", { name: "文書の管理" });
+  await expect(panel.getByText("サンプル").first()).toBeVisible();
+
+  await panel.getByLabel("文書をアップロード").setInputFiles({
+    name: "社員旅行.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("# 社員旅行の規程\n\n## 1. 時期と行き先\n\n- 社員旅行は毎年5月の第2週に行う。\n- 行き先は全員の投票で決める。\n"),
+  });
+  await expect(panel.getByRole("row", { name: /社員旅行\.md/ })).toContainText("取り込み完了");
+
+  await page.getByLabel("質問", { exact: true }).fill("社員旅行はいつ行く？");
+  await page.getByRole("button", { name: "質問する" }).click();
+  await expect(page.getByRole("region", { name: "回答" }).getByText("社員旅行の規程 ／ 1. 時期と行き先")).toBeVisible();
+
+  // 別の人（スタッフ）には使われず、文書管理のAPIも使えない
+  const other = await browser.newPage();
+  await other.goto("/chat");
+  await other.getByRole("button", { name: "スタッフで入る" }).click();
+  await other.getByLabel("質問", { exact: true }).fill("社員旅行はいつ行く？");
+  await other.getByRole("button", { name: "質問する" }).click();
+  await expect(other.getByText("今日あと1回")).toBeVisible();
+  await expect(other.getByText("社員旅行の規程")).toHaveCount(0);
+  expect((await other.request.get("/api/documents")).status()).toBe(403);
+  await other.close();
+
+  await panel.getByRole("button", { name: "社員旅行.mdを削除" }).click();
+  await expect(panel.getByRole("row", { name: /社員旅行\.md/ })).toHaveCount(0);
+});

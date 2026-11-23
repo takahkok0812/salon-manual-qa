@@ -149,3 +149,58 @@
   border: 1px solid var(--warn-line);
   color: var(--warn-ink);
 }
+
+.upload {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.docs {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.docs th,
+.docs td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.docs th {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.docs button {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 2px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+}
+
+.sampleTag {
+  margin-left: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.st_done {
+  color: var(--accent-strong);
+}
+
+.st_processing {
+  color: var(--warn-ink);
+}
+
+.st_failed {
+  color: #b42318;
+}

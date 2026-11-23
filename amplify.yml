@@ -9,7 +9,7 @@ frontend:
         - npm ci
     build:
       commands:
-        - env | grep -E '^(CHUNKS_TABLE|QUESTION_LOG_TABLE|SESSION_SECRET|EMBED_MODEL_ID|ANSWER_PROVIDER|ANSWER_MODEL_ID|DAILY_QUESTION_LIMIT|GLOBAL_DAILY_LIMIT)=' >> .env.production
+        - env | grep -E '^(CHUNKS_TABLE|QUESTION_LOG_TABLE|DOCUMENTS_BUCKET|SESSION_SECRET|EMBED_MODEL_ID|ANSWER_PROVIDER|ANSWER_MODEL_ID|DAILY_QUESTION_LIMIT|GLOBAL_DAILY_LIMIT)=' >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next

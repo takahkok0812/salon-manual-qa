@@ -37,6 +37,13 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      # 店長がアップロードした文書（デモ）は1日で消す。区切りの方は ChunksTable の TTL で消える
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-user-uploads
+            Status: Enabled
+            Prefix: manuals/u/
+            ExpirationInDays: 1
 
   ChunksTable:
     Type: AWS::DynamoDB::Table
@@ -48,6 +55,9 @@ Resources:
       KeySchema:
         - AttributeName: chunkId
           KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
 
   QuestionLogTable:
     Type: AWS::DynamoDB::Table
@@ -122,7 +132,17 @@ Resources:
                 Action:
                   - dynamodb:Scan
                   - dynamodb:GetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:DeleteItem
                 Resource: !GetAtt ChunksTable.Arn
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub "arn:aws:s3:::${AWS::StackName}-documents-${AWS::AccountId}"
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub "arn:aws:s3:::${AWS::StackName}-documents-${AWS::AccountId}/manuals/u/*"
               - Effect: Allow
                 Action:
                   - dynamodb:PutItem

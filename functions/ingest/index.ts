@@ -6,7 +6,8 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchWriteCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import type { S3Event } from "aws-lambda";
-import { splitMarkdown, toEmbeddingInput, withLineChunks, type GlossaryTerm } from "../../src/lib/chunk";
+import type { GlossaryTerm } from "../../src/lib/chunk";
+import { buildItems, deleteDocChunks, docIdFromKey } from "../../src/lib/ingest";
 import { BedrockTitanEmbedder } from "../../src/lib/embed";
 
 const s3 = new S3Client({});
@@ -35,14 +36,12 @@ export async function handler(event: S3Event): Promise<void> {
 
     const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     const body = await obj.Body!.transformToString("utf-8");
-    const docId = key.split("/").at(-1)!;
-    const chunks = withLineChunks(splitMarkdown(docId, body));
+    const docId = docIdFromKey(key);
     const glossary = await loadGlossary(bucket);
+    const items = await buildItems(docId, body, embedder, glossary);
 
-    const items = [];
-    for (const c of chunks) {
-      items.push({ ...c, vector: await embedder.embed(toEmbeddingInput(c, glossary)), updatedAt: new Date().toISOString() });
-    }
+    // 作り直し：前の版で消えた見出しの区切りが残らないよう、先に同じ文書の区切りを消す
+    const removed = await deleteDocChunks(ddb, TABLE, docId);
 
     // BatchWrite は25件ずつ
     for (let i = 0; i < items.length; i += 25) {
@@ -52,6 +51,6 @@ export async function handler(event: S3Event): Promise<void> {
         }),
       );
     }
-    console.log(JSON.stringify({ msg: "ingested", docId, chunks: items.length }));
+    console.log(JSON.stringify({ msg: "ingested", docId, chunks: items.length, removed }));
   }
 }

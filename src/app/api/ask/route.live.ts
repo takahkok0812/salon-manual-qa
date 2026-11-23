@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { createAnswerer } from "@/lib/answer";
 import { ask, normalizeQuestion } from "@/lib/ask";
 import { createEmbedder } from "@/lib/embed";
-import { getIndexItems } from "@/lib/index-store";
+import { getIndexItems, visibleTo } from "@/lib/index-store";
 import { getQuestionLog } from "@/lib/question-log";
 import { DAILY_LIMIT, getQuotaStore, GLOBAL_DAILY_LIMIT, GLOBAL_USER, jstDay } from "@/lib/quota";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
@@ -33,7 +33,8 @@ export async function POST(request: Request) {
   }
 
   const embedder = createEmbedder();
-  const result = await ask(q.question, { items: await getIndexItems(embedder), embedder, answerer: createAnswerer() });
+  const items = visibleTo(await getIndexItems(embedder), session.sub);
+  const result = await ask(q.question, { items, embedder, answerer: createAnswerer() });
   const log = await getQuestionLog().add({
     user: session.sub,
     role: session.role,

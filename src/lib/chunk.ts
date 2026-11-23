@@ -11,6 +11,10 @@ export type Chunk = {
   chunkId: string;
   /** 箇条書き1項目の区切りのとき、元になった見出しの区切りのID（検索ではこの親の全文をAIに渡す） */
   parentId?: string;
+  /** ログインした人がアップロードした文書のとき、その人のID（その人の質問にだけ使う）。サンプルは空 */
+  owner?: string;
+  /** アップロードした文書の区切りが消える時刻（UNIX秒）。DynamoDB の TTL */
+  expiresAt?: number;
 };
 
 /**
