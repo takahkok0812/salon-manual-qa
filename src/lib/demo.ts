@@ -29,6 +29,19 @@ export type DemoData = {
   items: DemoAnswer[];
 };
 
+/** 自由な質問の最大文字数（画面とAPIで共通）。 */
+export const MAX_QUESTION_LENGTH = 200;
+
+/** 自由な質問への回答（APIの返り値）。 */
+export type AskResult = {
+  question: string;
+  answer: string;
+  noAnswer: boolean;
+  /** filter＝類似度のふるい分けでAIを呼ばなかった、ai＝根拠を見てAIが判断した */
+  decidedBy: "filter" | "ai";
+  sources: DemoSource[];
+};
+
 export type AnswerPart = { kind: "text"; text: string } | { kind: "cite"; n: number };
 
 /** 回答の文字列を、本文と根拠番号（[1] など）に分ける。存在しない番号は本文のまま残す。 */

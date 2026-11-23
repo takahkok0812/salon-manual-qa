@@ -67,11 +67,24 @@ export class AnthropicAnswerer implements Answerer {
   }
 }
 
-/** ANSWER_PROVIDER（bedrock | anthropic）と ANSWER_MODEL_ID から作る。 */
+/**
+ * テスト・手元確認用。AIを呼ばず、1件目の根拠の1行目を番号つきで返す。
+ * E2Eテストや、AWSにつながない状態で画面の流れを確かめるときに使う（ANSWER_PROVIDER=fake）。
+ */
+export class FakeAnswerer implements Answerer {
+  readonly name = "fake";
+  async answer(_question: string, hits: Hit[]): Promise<string> {
+    const first = hits[0]?.chunk.text.split("\n").find((l) => l.trim()) ?? "";
+    return first ? `${first.replace(/^[-\d.\s]+/, "")} [1]` : NO_ANSWER;
+  }
+}
+
+/** ANSWER_PROVIDER（bedrock | anthropic | fake）と ANSWER_MODEL_ID から作る。 */
 export function createAnswerer(
   provider = process.env.ANSWER_PROVIDER ?? "bedrock",
   modelId = process.env.ANSWER_MODEL_ID,
 ): Answerer {
+  if (provider === "fake") return new FakeAnswerer();
   if (!modelId) throw new Error("ANSWER_MODEL_ID が設定されていません（npm run models で使えるIDを確認）");
   return provider === "anthropic" ? new AnthropicAnswerer(modelId) : new BedrockAnswerer(modelId);
 }

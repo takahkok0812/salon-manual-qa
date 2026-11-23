@@ -80,7 +80,10 @@ function QuestionGroup({
   );
 }
 
-function AnswerView({ item }: { item: DemoAnswer }) {
+export type AnswerItem = Pick<DemoAnswer, "id" | "question" | "answer" | "noAnswer" | "decidedBy" | "sources">;
+
+/** 質問・回答・根拠の表示（公開デモと、ログイン後の自由な質問で共通）。 */
+export function AnswerView({ item }: { item: AnswerItem }) {
   const [active, setActive] = useState<number | null>(null);
   const cited = citedNumbers(item.answer, item.sources.length);
   const shown = item.sources.filter((s) => cited.includes(s.n));

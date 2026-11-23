@@ -1,0 +1,93 @@
+.login,
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loginButtons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.loginButtons button,
+.formFoot button {
+  font: inherit;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.loginButtons button:nth-child(2) {
+  background: var(--surface);
+  color: var(--accent-strong);
+}
+
+.formFoot button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.status {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.logout {
+  margin-left: auto;
+  font: inherit;
+  font-size: 0.85rem;
+  background: none;
+  border: none;
+  color: var(--accent-strong);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.form textarea {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: inherit;
+  resize: vertical;
+}
+
+.formFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.error {
+  color: #b42318;
+  font-size: 0.85rem;
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}

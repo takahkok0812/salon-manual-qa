@@ -9,6 +9,8 @@ const REPO_URL = "https://github.com/takahkok0812/salon-manual-qa";
 export default async function Home() {
   const { docTitles, chunkCount } = await getSampleSummary();
   const data = demo as DemoData;
+  // 静的書き出し（GitHub Pages）にはログイン後の画面がないので、リンクを出さない
+  const hasLive = process.env.GITHUB_PAGES !== "1";
 
   return (
     <main className={styles.main}>
@@ -39,6 +41,13 @@ export default async function Home() {
         {data.generatedAt && (
           <p className={styles.meta}>
             回答の作成：{new Date(data.generatedAt).toLocaleDateString("ja-JP")}（回答モデル {data.answerModel.replace(/^bedrock:/, "")}）
+          </p>
+        )}
+        {hasLive && (
+          <p>
+            <a className={styles.link} href="/chat">
+              ログインして自由に質問する（1日の回数制限あり）
+            </a>
           </p>
         )}
         <p>

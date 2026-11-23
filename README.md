@@ -17,10 +17,10 @@
 | 質問への回答：関連箇所を検索し、AIが根拠の番号つきで回答 | 済み（評価27問で期待どおり27問） |
 | 根拠がないときは「記載なし」と答える | 済み（ふるい分け＋AIの判断の2段階） |
 | 公開デモ：事前に作った回答を、根拠と一緒に表示する | 済み（GitHub Pages） |
-| 自由な質問（ログインした人だけ、1日数回まで） | 未着手 |
+| 自由な質問（ログインした人だけ、1日数回まで） | 手元で動作（デモ用2ロールのログイン、1日の回数制限、E2Eテスト）。AWSへの公開は次 |
 | 回答への「役に立った／立たなかった」、未解決の質問の記録 | 未着手 |
 | 管理画面：文書の一覧・削除、質問ログ、未解決の質問 | 未着手 |
-| ログイン：スタッフ／店長の2ロール | 未着手 |
+| ログイン：スタッフ／店長の2ロール | 済み（HS256のJWTをHttpOnly Cookieに保存。管理画面の権限分けは次） |
 
 ## 構成
 
@@ -80,6 +80,16 @@ AWSを呼ばずに流れだけ試すときは `$env:EMBEDDER="local"` を付け�
 `npm run runner` を起動しておくと、`.data/request.txt` に書かれたジョブを1つずつ実行し、ログを `.data/run-latest.md` に残します。
 実行できるのは `scripts/runner.ps1` に書いた決まったコマンド（pull / ci / index / eval / eval-answer N / models / whoami / check / update）だけです。
 環境変数は `.data/runner.env`（`ANSWER_MODEL_ID=...` などの行）から、許可したキーだけを読み込みます。
+
+### ログインして自由に質問する（手元で）
+
+```powershell
+npm run dev   # http://localhost:3000/chat
+```
+
+- 「スタッフで入る」「店長で入る」でログインし、マニュアルについて自由に質問できます（1日5回まで。`DAILY_QUESTION_LIMIT` で変更）。
+- AWS につながずに画面の流れだけ試すときは `$env:EMBEDDER="local"; $env:ANSWER_PROVIDER="fake"` を付けます。
+- 画面とAPI（`*.live.ts(x)`）は、GitHub Pages 用の静的書き出しには含めません（`next.config.ts`）。
 
 ## 開発
 
