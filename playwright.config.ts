@@ -19,6 +19,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     // ログイン後の「自由に質問」は、AWSを呼ばない埋め込みと回答で確かめる
-    env: { EMBEDDER: "local", ANSWER_PROVIDER: "fake", ALLOW_DEV_SECRET: "1", DAILY_QUESTION_LIMIT: "2" },
+    env: { EMBEDDER: "local", ANSWER_PROVIDER: "fake", ALLOW_DEV_SECRET: "1", DAILY_QUESTION_LIMIT: "2", GLOBAL_DAILY_LIMIT: "100" },
   },
 });

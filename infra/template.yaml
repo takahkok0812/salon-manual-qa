@@ -101,6 +101,41 @@ Resources:
         External:
           - "@aws-sdk/*"
 
+  # Amplify Hosting（ログイン後の画面とAPI）のサーバー処理が使うロール。
+  # 区切りの読み取り、質問ログ・回数の記録、Bedrock（埋め込みと回答）の呼び出しだけを許す。
+  AmplifyComputeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: amplify.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: salon-manual-qa-compute
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                Resource: !GetAtt ChunksTable.Arn
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                  - dynamodb:Scan
+                Resource: !GetAtt QuestionLogTable.Arn
+              - Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource:
+                  - arn:aws:bedrock:*::foundation-model/*
+                  - !Sub arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*
+
   MonthlyBudget:
     Type: AWS::Budgets::Budget
     Properties:
@@ -134,3 +169,6 @@ Outputs:
     Value: !Ref ChunksTable
   QuestionLogTableName:
     Value: !Ref QuestionLogTable
+  AmplifyComputeRoleArn:
+    Description: Amplify アプリの「コンピューティングロール」に設定する
+    Value: !GetAtt AmplifyComputeRole.Arn

@@ -1,0 +1,21 @@
+# AWS Amplify Hosting のビルド設定（ログイン後の画面とAPIを含む Next.js をサーバー処理つきで配信する）。
+# Amplify の環境変数は、ビルド時に .env.production へ書き出さないとサーバー処理から読めないため、必要なものだけ書き出す。
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - nvm use 22
+        - npm ci
+    build:
+      commands:
+        - env | grep -E '^(CHUNKS_TABLE|QUESTION_LOG_TABLE|SESSION_SECRET|EMBED_MODEL_ID|ANSWER_PROVIDER|ANSWER_MODEL_ID|DAILY_QUESTION_LIMIT|GLOBAL_DAILY_LIMIT)=' >> .env.production
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - .next/cache/**/*
+      - node_modules/**/*

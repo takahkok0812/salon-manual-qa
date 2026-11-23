@@ -6,6 +6,12 @@ import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
  * 日付は日本時間で区切る。
  */
 export const DAILY_LIMIT = Number(process.env.DAILY_QUESTION_LIMIT ?? 5);
+/**
+ * 全員合わせた1日の上限。デモ用ログインはパスワードがなく誰でも入れるため、
+ * 1人あたりの上限だけでは入り直しでいくらでも呼べてしまう。費用の上限をここで確実に抑える。
+ */
+export const GLOBAL_DAILY_LIMIT = Number(process.env.GLOBAL_DAILY_LIMIT ?? 30);
+export const GLOBAL_USER = "__all__";
 
 export interface QuotaStore {
   /** 1回分を使う。上限に達していれば ok: false（回数は増やさない）。 */
