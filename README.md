@@ -95,6 +95,11 @@ npm run dev   # http://localhost:3000/chat
 - AWS につながずに画面の流れだけ試すときは `$env:EMBEDDER="local"; $env:ANSWER_PROVIDER="fake"` を付けます。
 - 画面とAPI（`*.live.ts(x)`）は、GitHub Pages 用の静的書き出しには含めません（`next.config.ts`）。
 
+### AWS Amplify の環境変数
+
+`CHUNKS_TABLE`・`QUESTION_LOG_TABLE`・`DOCUMENTS_BUCKET`（スタックの出力の名前）、`EMBED_MODEL_ID`、`ANSWER_PROVIDER`・`ANSWER_MODEL_ID`、`DAILY_QUESTION_LIMIT`・`GLOBAL_DAILY_LIMIT`、`SESSION_SECRET`（ランダムな64文字）。
+ビルド時に `.env.production` へ書き出す（`amplify.yml`）ため、変数を変えたら「再デプロイ」ではなく新しいビルドが必要です。
+
 ## 開発
 
 ```bash
