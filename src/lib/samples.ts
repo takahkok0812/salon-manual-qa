@@ -22,9 +22,8 @@ export async function loadSampleGlossary(dir = SAMPLES_DIR): Promise<GlossaryTer
   return (JSON.parse(raw) as { terms: GlossaryTerm[] }).terms;
 }
 
-/** トップページ用の概要。ビルド時に一度だけ読み込む。 */
+/** トップページ用の概要。ページはビルド時に静的に作るので、読み込みもビルド時の一度だけ。 */
 export async function getSampleSummary(): Promise<{ docTitles: string[]; chunkCount: number }> {
-  "use cache";
   const chunks = await loadSampleChunks();
   return { docTitles: [...new Set(chunks.map((c) => c.docTitle))], chunkCount: chunks.length };
 }
