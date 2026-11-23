@@ -17,6 +17,7 @@ function Get-JobCommands([string]$name, [string]$arg) {
     "models"      { return ,@("npm run models") }
     "demo"        { return ,@("npm run demo:build") }
     "whoami"      { return ,@("aws sts get-caller-identity") }
+    "sam-build"   { return ,@("sam build") }
     "check"       { return ,@("npm run lint", "npm run typecheck", "npm test") }
     "update"      { return ,@("git pull --ff-only", "npm ci") }
     default       { return $null }
