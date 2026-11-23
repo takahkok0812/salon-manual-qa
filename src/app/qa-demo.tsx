@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { citedNumbers, splitCitations, type DemoAnswer, type DemoData } from "@/lib/demo";
 import styles from "./qa-demo.module.css";
 
@@ -14,6 +14,15 @@ export function QaDemo({ data }: { data: DemoData }) {
   const [selectedId, setSelectedId] = useState<string | null>(data.items[0]?.id ?? null);
   const [showAll, setShowAll] = useState(false);
   const selected = data.items.find((i) => i.id === selectedId) ?? null;
+  const chatRef = useRef<HTMLElement>(null);
+
+  // スマホ幅では回答が一覧の下に出るので、選んだら回答までスクロールする
+  const select = (id: string) => {
+    setSelectedId(id);
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      requestAnimationFrame(() => chatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+  };
 
   if (data.items.length === 0) {
     return <p className={styles.empty}>デモ用の回答を準備中です。</p>;
@@ -24,8 +33,8 @@ export function QaDemo({ data }: { data: DemoData }) {
   return (
     <div className={styles.layout}>
       <nav className={styles.questions} aria-label="質問を選ぶ">
-        <QuestionGroup title="マニュアルに答えがある質問" items={visible(answerable, FIRST_ANSWERABLE)} selectedId={selectedId} onSelect={setSelectedId} />
-        <QuestionGroup title="マニュアルにない質問" items={visible(noAnswer, FIRST_NO_ANSWER)} selectedId={selectedId} onSelect={setSelectedId} />
+        <QuestionGroup title="マニュアルに答えがある質問" items={visible(answerable, FIRST_ANSWERABLE)} selectedId={selectedId} onSelect={select} />
+        <QuestionGroup title="マニュアルにない質問" items={visible(noAnswer, FIRST_NO_ANSWER)} selectedId={selectedId} onSelect={select} />
         {(answerable.length > FIRST_ANSWERABLE || noAnswer.length > FIRST_NO_ANSWER) && (
           <button type="button" className={styles.more} onClick={() => setShowAll((v) => !v)}>
             {showAll ? "質問を減らす" : `ほかの質問も見る（全${data.items.length}問）`}
@@ -37,7 +46,7 @@ export function QaDemo({ data }: { data: DemoData }) {
         </div>
       </nav>
 
-      <section className={styles.chat} aria-live="polite" aria-label="回答">
+      <section ref={chatRef} className={styles.chat} aria-live="polite" aria-label="回答">
         {selected ? <AnswerView key={selected.id} item={selected} /> : <p className={styles.empty}>左の一覧から質問を選んでください。</p>}
       </section>
     </div>

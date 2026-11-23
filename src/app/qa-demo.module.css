@@ -9,6 +9,10 @@
   .layout {
     grid-template-columns: 1fr;
   }
+
+  .chat {
+    position: static;
+  }
 }
 
 .questions {
@@ -92,6 +96,9 @@
 }
 
 .chat {
+  position: sticky;
+  top: 24px;
+  scroll-margin-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
