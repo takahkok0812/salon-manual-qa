@@ -13,7 +13,7 @@
 
 | 機能 | 状態 |
 | --- | --- |
-| マニュアル（Markdown・テキスト）の取り込み：分割 → 埋め込み → 保存 | 分割・用語集・検索とテストまで。AWS上での取り込みは `sam build` 済み（デプロイは次） |
+| マニュアル（Markdown・テキスト）の取り込み：分割 → 埋め込み → 保存 | 済み（AWS上で、S3に置くと Lambda が分割・埋め込みして DynamoDB に保存。サンプル5本で110件を確認） |
 | 質問への回答：関連箇所を検索し、AIが根拠の番号つきで回答 | 済み（評価27問で期待どおり27問） |
 | 根拠がないときは「記載なし」と答える | 済み（ふるい分け＋AIの判断の2段階） |
 | 公開デモ：事前に作った回答を、根拠と一緒に表示する | 済み（GitHub Pages） |
@@ -92,14 +92,18 @@ npm test           # Vitest
 npm run e2e        # Playwright（ビルドして起動してから実行）
 ```
 
-AWSへのデプロイ（取り込み部分）：
+AWSへのデプロイ（取り込み部分）と、サンプルの取り込み：
 
 ```bash
 sam build
 sam deploy --parameter-overrides AlertEmail=you@example.com
+npm run aws:upload   # 用語集 → マニュアル5本の順にS3へ置く（置くと取り込みLambdaが動く）
+npm run aws:status   # 取り込まれた区切りの件数を文書ごとに表示
 ```
 
-リージョンはシドニー（ap-southeast-2）です。AWSの無料プランでは、プロジェクトのリージョンがシドニーに固定されるためです（`samconfig.toml`）。Bedrockの Titan Text Embeddings V2 と Claude はシドニーで使えます。
+日本語の Windows で `sam` を使うときは、`$env:PYTHONUTF8="1"` を設定してください（設定ファイルを Shift_JIS として読んで失敗するため）。
+
+リージョンはシドニー（ap-southeast-2）です。AWSの無料プランでは、プロジェクトのリージョンがシドニーに固定されるためです（`samconfig.toml`）。Bedrockの Titan Text Embeddings V2 と Nova はシドニーから使えます（Claude はアカウントの申請の反映待ち）。
 
 ## ディレクトリ
 
