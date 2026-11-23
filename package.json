@@ -13,6 +13,7 @@
     "index": "tsx scripts/build-index.ts",
     "eval": "tsx scripts/eval.ts",
     "models": "tsx scripts/models.ts",
+    "demo:build": "tsx scripts/build-demo.ts",
     "runner": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/runner.ps1"
   },
   "dependencies": {

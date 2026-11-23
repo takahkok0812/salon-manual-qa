@@ -9,6 +9,7 @@
 #
 # request.txt format: first line = job name, e.g. "eval-answer 3"
 # Optional .data\runner.env: KEY=VALUE lines, only the keys in $AllowedEnv are applied.
+# The allow-lists live in scripts\runner-jobs.ps1 (re-read on every request).
 
 $ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -20,29 +21,10 @@ $Request = Join-Path $Data "request.txt"
 $Running = Join-Path $Data "request.running"
 $Log = Join-Path $Data "run-latest.md"
 $EnvFile = Join-Path $Data "runner.env"
-$AllowedEnv = @("ANSWER_PROVIDER", "ANSWER_MODEL_ID", "EMBED_MODEL_ID", "EMBEDDER", "EVIDENCE_THRESHOLD", "CHUNK_MODE", "GLOSSARY", "LEXICAL_WEIGHT")
+$JobsFile = Join-Path $PSScriptRoot "runner-jobs.ps1"
 
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
 Set-Location $Root
-
-function Get-JobCommands([string]$name, [string]$arg) {
-  switch ($name) {
-    "pull"        { return ,@("git pull --ff-only") }
-    "ci"          { return ,@("npm ci") }
-    "index"       { return ,@("npm run index") }
-    "eval"        { return ,@("npm run eval") }
-    "eval-answer" {
-      $n = 3
-      if ($arg -match '^\d{1,2}$') { $n = [int]$arg }
-      return ,@("npm run eval -- --answer $n")
-    }
-    "models"      { return ,@("npm run models") }
-    "whoami"      { return ,@("aws sts get-caller-identity") }
-    "check"       { return ,@("npm run lint", "npm run typecheck", "npm test") }
-    "update"      { return ,@("git pull --ff-only", "npm ci") }
-    default       { return $null }
-  }
-}
 
 function Import-RunnerEnv {
   if (-not (Test-Path $EnvFile)) { return @() }
@@ -65,6 +47,8 @@ while ($true) {
     $parts = $line.Trim() -split '\s+', 2
     $job = $parts[0]
     $arg = if ($parts.Count -gt 1) { $parts[1] } else { "" }
+    # The job list is re-read for every request, so jobs added by "pull" work without restarting.
+    . $JobsFile
     $cmds = Get-JobCommands $job $arg
     $started = Get-Date
     $out = New-Object System.Collections.Generic.List[string]

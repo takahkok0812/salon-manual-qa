@@ -19,9 +19,8 @@ import {
   rankSections,
   semanticScores,
   type Hit,
-  type StoredChunk,
 } from "../src/lib/search";
-import { buildIndex, INDEX_PATH, indexMode } from "./build-index";
+import { indexMode, loadIndex } from "./build-index";
 
 const K = 3;
 /** 実行結果の写し。チャット側から読み取れるよう、毎回ここに上書きで保存する。 */
@@ -30,17 +29,6 @@ const out: string[] = [];
 function log(text: string) {
   console.log(text);
   out.push(text);
-}
-
-async function loadIndex(expected: string): Promise<StoredChunk[]> {
-  try {
-    const saved = JSON.parse(await readFile(INDEX_PATH, "utf8")) as { embedder: string; mode?: string; items: StoredChunk[] };
-    if (saved.embedder === expected && (saved.mode ?? "section") === indexMode()) return saved.items;
-    console.log(`保存済みの索引（${saved.embedder}、${saved.mode ?? "section"}）と設定が違うので作り直します`);
-  } catch {
-    console.log("索引がないので作ります");
-  }
-  return (await buildIndex()).items;
 }
 
 async function main() {

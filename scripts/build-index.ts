@@ -3,7 +3,7 @@
  *   npm run index            … Bedrock の Titan で埋め込み（AWSにログイン済みであること）
  *   EMBEDDER=local npm run index … AWSを呼ばずに試す
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { toEmbeddingInput, withLineChunks } from "../src/lib/chunk";
 import { createEmbedder } from "../src/lib/embed";
@@ -30,6 +30,18 @@ export async function buildIndex(): Promise<{ embedder: string; mode: string; it
     items.push({ ...c, vector: await embedder.embed(toEmbeddingInput(c, glossary)) });
   }
   return { embedder: embedder.name, mode: indexMode(), items };
+}
+
+/** 保存済みの索引が今の設定と同じなら読み込み、違えば作り直す（保存はしない）。 */
+export async function loadIndex(expected: string): Promise<StoredChunk[]> {
+  try {
+    const saved = JSON.parse(await readFile(INDEX_PATH, "utf8")) as { embedder: string; mode?: string; items: StoredChunk[] };
+    if (saved.embedder === expected && (saved.mode ?? "section") === indexMode()) return saved.items;
+    console.log(`保存済みの索引（${saved.embedder}、${saved.mode ?? "section"}）と設定が違うので作り直します`);
+  } catch {
+    console.log("索引がないので作ります");
+  }
+  return (await buildIndex()).items;
 }
 
 async function main() {
