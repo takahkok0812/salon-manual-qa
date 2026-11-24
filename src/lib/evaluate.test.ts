@@ -30,7 +30,7 @@ describe("suggestThreshold", () => {
 });
 
 describe("answerWithEvidence", () => {
-  const fake: Answerer = { name: "fake", answer: async () => "回答 [1]" };
+  const fake: Answerer = { name: "fake", answer: async () => "回答 [1]", generate: async () => "" };
   const hit = (score: number): Hit => ({
     chunk: { docId: "a.md", docTitle: "A", heading: "h", text: "t", chunkId: "a" },
     score,

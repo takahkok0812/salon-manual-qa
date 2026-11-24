@@ -204,3 +204,103 @@
 .st_failed {
   color: #b42318;
 }
+
+/* 音声メモの要約 */
+.memo {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.memo h2 {
+  font-size: 1rem;
+}
+
+.memo h3 {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.memoTools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.formFoot .secondary {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: inherit;
+}
+
+.recording {
+  font-size: 0.82rem;
+  color: var(--warn-ink);
+}
+
+.note {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary dl {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary dl > div {
+  display: grid;
+  grid-template-columns: 8.5em 1fr;
+  gap: 8px;
+}
+
+.summary dt {
+  font-weight: 600;
+}
+
+.notMentioned dd {
+  color: var(--muted);
+}
+
+.cite {
+  font: inherit;
+  font-size: 0.72rem;
+  margin-left: 6px;
+  min-width: 1.6em;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent-strong);
+  cursor: pointer;
+}
+
+.sentences {
+  padding-left: 1.6em;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.sentences .focused {
+  color: inherit;
+  background: var(--warn-soft);
+  border-radius: 4px;
+}

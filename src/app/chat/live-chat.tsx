@@ -5,6 +5,7 @@ import { MAX_QUESTION_LENGTH, type AskResult } from "@/lib/demo";
 import type { Role } from "@/lib/session";
 import { AnswerView } from "../qa-demo";
 import { DocumentsPanel } from "./documents-panel";
+import { VoiceMemo } from "./voice-memo";
 import demoStyles from "../qa-demo.module.css";
 import styles from "./live-chat.module.css";
 
@@ -166,6 +167,8 @@ export function LiveChat() {
           </div>
         ))}
       </section>
+
+      <VoiceMemo onRemaining={setRemaining} />
 
       {role === "manager" && <DocumentsPanel />}
 

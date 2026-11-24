@@ -91,3 +91,20 @@ test("店長がアップロードした文書は本人の質問にだけ使わ�
   await panel.getByRole("button", { name: "社員旅行.mdを削除" }).click();
   await expect(panel.getByRole("row", { name: /社員旅行\.md/ })).toHaveCount(0);
 });
+
+test("メモをカウンセリング記録にまとめ、各項目にもとの文の番号が付く", async ({ page }) => {
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "スタッフで入る" }).click();
+  const memo = page.getByRole("region", { name: "音声メモの要約" });
+  await memo.getByRole("button", { name: "例文を入れる" }).click();
+  await memo.getByRole("button", { name: "記録にまとめる" }).click();
+
+  const record = memo.getByRole("region", { name: "カウンセリング記録" });
+  await expect(record.getByText("ご要望")).toBeVisible();
+  await expect(record.getByRole("button", { name: "もとの文1" })).toBeVisible();
+  await expect(record.getByRole("listitem").first()).toHaveText("今日は肩につくくらいまで短くしたいです。");
+  await expect(page.getByText("今日あと1回")).toBeVisible();
+
+  const res = await page.request.post("/api/summarize", { data: { memo: "" } });
+  expect(res.status()).toBe(400);
+});

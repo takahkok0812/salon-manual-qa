@@ -1,14 +1,18 @@
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { buildUserPrompt, NO_ANSWER, SYSTEM_PROMPT } from "./prompt";
 import { hasEvidence, type Hit } from "./search";
+import { fakeGenerate } from "./summarize";
 
 /** 回答を作る部分の差し替え口。Bedrock（Claude・Nova）とClaude APIの直接呼び出しを切り替えられる。 */
 export interface Answerer {
   readonly name: string;
   answer(question: string, hits: Hit[]): Promise<string>;
+  /** 指示（system）と入力を渡して文章を作る。音声メモの要約などで使う。 */
+  generate(system: string, user: string): Promise<string>;
 }
 
 const MAX_TOKENS = 400;
+const GENERATE_MAX_TOKENS = 800;
 
 /** Bedrock の Converse API。Claude でも Nova でも同じ呼び方で使える。 */
 export class BedrockAnswerer implements Answerer {
@@ -21,12 +25,20 @@ export class BedrockAnswerer implements Answerer {
   }
 
   async answer(question: string, hits: Hit[]): Promise<string> {
+    return this.converse(SYSTEM_PROMPT, buildUserPrompt(question, hits), MAX_TOKENS);
+  }
+
+  async generate(system: string, user: string): Promise<string> {
+    return this.converse(system, user, GENERATE_MAX_TOKENS);
+  }
+
+  private async converse(system: string, user: string, maxTokens: number): Promise<string> {
     const res = await this.client.send(
       new ConverseCommand({
         modelId: this.modelId,
-        system: [{ text: SYSTEM_PROMPT }],
-        messages: [{ role: "user", content: [{ text: buildUserPrompt(question, hits) }] }],
-        inferenceConfig: { maxTokens: MAX_TOKENS, temperature: 0 },
+        system: [{ text: system }],
+        messages: [{ role: "user", content: [{ text: user }] }],
+        inferenceConfig: { maxTokens, temperature: 0 },
       }),
     );
     const blocks = res.output?.message?.content ?? [];
@@ -46,6 +58,14 @@ export class AnthropicAnswerer implements Answerer {
   }
 
   async answer(question: string, hits: Hit[]): Promise<string> {
+    return this.messages(SYSTEM_PROMPT, buildUserPrompt(question, hits), MAX_TOKENS);
+  }
+
+  async generate(system: string, user: string): Promise<string> {
+    return this.messages(system, user, GENERATE_MAX_TOKENS);
+  }
+
+  private async messages(system: string, user: string, maxTokens: number): Promise<string> {
     if (!this.apiKey) throw new Error("ANTHROPIC_API_KEY が設定されていません");
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -56,9 +76,9 @@ export class AnthropicAnswerer implements Answerer {
       },
       body: JSON.stringify({
         model: this.model,
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildUserPrompt(question, hits) }],
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: "user", content: user }],
       }),
     });
     if (!res.ok) throw new Error(`Claude API エラー: ${res.status} ${await res.text()}`);
@@ -76,6 +96,10 @@ export class FakeAnswerer implements Answerer {
   async answer(_question: string, hits: Hit[]): Promise<string> {
     const first = hits[0]?.chunk.text.split("\n").find((l) => l.trim()) ?? "";
     return first ? `${first.replace(/^[-\d.\s]+/, "")} [1]` : NO_ANSWER;
+  }
+
+  async generate(system: string, user: string): Promise<string> {
+    return fakeGenerate(system, user);
   }
 }
 
