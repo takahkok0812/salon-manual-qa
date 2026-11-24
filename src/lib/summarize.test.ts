@@ -5,6 +5,17 @@ describe("splitSentences", () => {
   it("句点・疑問符・改行で文に分ける", () => {
     expect(splitSentences("短くしたいです。傷みは気になりますか？\n次回はカラー")).toEqual(["短くしたいです。", "傷みは気になりますか？", "次回はカラー"]);
   });
+  it("句点のない長い音声認識の結果は、息つぎの空白で区切り、短い切れ端は次とつなぐ", () => {
+    const text =
+      "今日のお客様は 初めてのご来店の30代の女性です ご紹介でいらっしゃいました ご要望は今の長さから肩につくくらいまで短くしたいとのことです 前髪 今のまま残したいとおっしゃってました";
+    const s = splitSentences(text);
+    expect(s.length).toBeGreaterThan(2);
+    expect(s.every((x) => x.length >= 15)).toBe(true);
+    expect(s.join(" ")).toBe(text);
+  });
+  it("短い文はそのまま", () => {
+    expect(splitSentences("前髪 今のまま")).toEqual(["前髪 今のまま"]);
+  });
   it("空白だけの文は捨てる", () => {
     expect(splitSentences("  \n\n。")).toEqual(["。"]);
     expect(splitSentences("   ")).toEqual([]);

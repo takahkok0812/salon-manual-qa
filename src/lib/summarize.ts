@@ -24,13 +24,40 @@ export interface SummaryResult {
   fields: SummaryField[];
 }
 
-/** 書き起こしを文に分ける。句点・感嘆符・疑問符・改行で区切る。 */
+const LONG_SENTENCE = 50;
+const MIN_PIECE = 15;
+
+/**
+ * 音声認識の結果は句点がなく、息つぎの位置に空白が入るだけのことが多い。
+ * 長すぎる文は空白で区切り、短すぎる切れ端は次とつないで、根拠の番号を付けやすい長さにする。
+ */
+function splitLong(sentence: string): string[] {
+  if (sentence.length <= LONG_SENTENCE || !sentence.includes(" ")) return [sentence];
+  const out: string[] = [];
+  let buf = "";
+  for (const piece of sentence.split(" ")) {
+    buf = buf ? `${buf} ${piece}` : piece;
+    if (buf.length >= MIN_PIECE) {
+      out.push(buf);
+      buf = "";
+    }
+  }
+  if (buf) {
+    if (out.length > 0) out[out.length - 1] = `${out[out.length - 1]} ${buf}`;
+    else out.push(buf);
+  }
+  return out;
+}
+
+/** 書き起こしを文に分ける。句点・感嘆符・疑問符・改行で区切り、長すぎる文は息つぎ（空白）でも区切る。 */
 export function splitSentences(text: string): string[] {
   return text
     .replace(/\r/g, "")
+    .replace(/[　]/g, " ")
     .split(/(?<=[。！？!?])|\n+/)
     .map((s) => s.replace(/\s+/g, " ").trim())
     .filter((s) => s.length > 0)
+    .flatMap(splitLong)
     .slice(0, MAX_SENTENCES);
 }
 
@@ -51,11 +78,12 @@ export const SUMMARY_SYSTEM_PROMPT = `あなたは美容室のスタッフを手
   - 髪・頭皮の状態：傷み・乾燥・くせ・白髪など、いまの状態
   - 施術の内容：今日行う（行った）施術
   - 次回の提案：次の来店時期や、次に勧めること
-  - 注意すること：薬剤でしみた・かぶれた経験、アレルギー、苦手なことなど、次の施術で気をつけること（同じ文を「髪・頭皮の状態」と両方に使ってよい）
+  - 注意すること：薬剤でしみた・かぶれた経験、アレルギー、苦手なことなど、次の施術で気をつけること
 - メモに書かれていることだけを使う。書かれていないことを推測で足さない
 - メモは音声認識の結果のことがあり、同音の聞き間違い（例：「傷み」が「痛み」、「しみた」が「染みた」）を含む。文脈から明らかな聞き間違いは正しい語に直して書いてよい
 - 話に出てこなかった項目は、text を「${NOT_MENTIONED}」、sources を空の配列にする
-- 各項目には、根拠にしたメモの文の番号を sources に必ず入れる
+- 各項目には、その項目に当たる内容だけを書く（例：香りの好みやしみた経験は「注意すること」に書き、「髪・頭皮の状態」には書かない）。どの項目にも当たらない話（支払い方法、雑談など）は書かない
+- 各項目には、根拠にしたメモの文の番号を sources に必ず入れる。番号はその内容が書かれている文だけにする
 - text は1〜2文、です・ます調で簡潔に
 - 出力は次の形の JSON だけ。前置きや説明は書かない
 {"fields":[{"label":"ご要望","text":"…","sources":[1,2]}]}`;
