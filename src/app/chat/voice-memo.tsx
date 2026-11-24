@@ -54,12 +54,14 @@ export function VoiceMemo({ onRemaining }: { onRemaining: (n: number) => void })
     rec.lang = "ja-JP";
     rec.continuous = true;
     rec.interimResults = false;
+    // 音声認識の結果には句点が付かないので、確定したひとまとまり（息つぎで区切られる）ごとに改行して文として扱う
     rec.onresult = (e) => {
-      let text = "";
+      const parts: string[] = [];
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) text += e.results[i][0].transcript;
+        if (e.results[i].isFinal) parts.push(e.results[i][0].transcript.trim());
       }
-      if (text) setMemo((prev) => (prev + (prev && !/[。！？\n]$/.test(prev) ? "。" : "") + text).slice(0, MAX_MEMO_LENGTH));
+      const text = parts.filter(Boolean).join("\n");
+      if (text) setMemo((prev) => (prev && !prev.endsWith("\n") ? `${prev}\n${text}` : prev + text).slice(0, MAX_MEMO_LENGTH));
     };
     rec.onerror = (e) => setError(e.error === "not-allowed" ? "マイクの使用が許可されていません。ブラウザの設定を確認するか、文字で入力してください" : "音声を認識できませんでした");
     rec.onend = () => setListening(false);
@@ -114,6 +116,17 @@ export function VoiceMemo({ onRemaining }: { onRemaining: (n: number) => void })
             )}
             <button type="button" className={styles.secondary} onClick={() => setMemo(SAMPLE)}>
               例文を入れる
+            </button>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => {
+                setMemo("");
+                setResult(null);
+              }}
+              disabled={!memo && !result}
+            >
+              消す
             </button>
             <span>
               {memo.length}/{MAX_MEMO_LENGTH}
