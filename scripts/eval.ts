@@ -105,25 +105,32 @@ async function main() {
     const fullRank = (q: EvalQuestion, list: StoredChunk[], scores: number[]) => {
       const hits = rankSections(list, scores, Number.POSITIVE_INFINITY);
       const i = hits.findIndex((h) => q.expected.some((e) => e.doc === h.chunk.docId && e.heading === h.chunk.heading));
-      return { rank: i >= 0 ? i + 1 : null, top: hits[0]?.score ?? 0 };
+      // 余裕：正解が1位なら2位との類似度の差、1位でなければ1位との差（マイナス）。小さいほど押し出されやすい
+      const margin = i < 0 ? null : i === 0 ? hits[0].score - (hits[1]?.score ?? 0) : hits[i].score - hits[0].score;
+      return { rank: i >= 0 ? i + 1 : null, top: hits[0]?.score ?? 0, margin };
     };
     const mix = (s: number[], l: number[]) => (weight > 0 ? mixScores(s, l, weight) : s);
     log(`\n## 用語集のあり・なしの比較（関連語を足した区切り：${changed}件）\n`);
     log(`関連語：${glossary.map((g) => `${g.term}→${g.aliases.join("、")}`).join(" ／ ")}\n`);
+    log("答えありは「順位（余裕）」。余裕は、正解が1位なら2位との類似度の差、1位でなければ1位との差。記載なしは一番近い区切りの類似度。\n");
     log("| id | 種類 | 質問 | 用語集なし | 用語集あり | 変化 |");
     log("|---|---|---|---|---|---|");
-    const moved = { up: [] as string[], down: [] as string[] };
+    const moved = { up: [] as string[], down: [] as string[], thinner: [] as string[] };
+    const fmt = (r: { rank: number | null; margin: number | null }) =>
+      r.rank === null ? "-" : `${r.rank}位（${r.margin! >= 0 ? "+" : ""}${r.margin!.toFixed(3)}）`;
     for (const { q, vector, lexical } of scored) {
       const off = fullRank(q, plain, mix(semanticScores(plain, vector), lexical));
       const on = fullRank(q, items, mix(semanticScores(items, vector), lexical));
       let before: string, after: string, diff: string;
       if (q.type === "answerable") {
-        before = off.rank === null ? "-" : `${off.rank}位`;
-        after = on.rank === null ? "-" : `${on.rank}位`;
+        before = fmt(off);
+        after = fmt(on);
         const d = (off.rank ?? 99) - (on.rank ?? 99);
-        diff = d > 0 ? `↑${d}` : d < 0 ? `↓${-d}` : "→";
+        const m = (on.margin ?? 0) - (off.margin ?? 0);
+        diff = `${d > 0 ? `↑${d}` : d < 0 ? `↓${-d}` : "→"} 余裕${m >= 0 ? "+" : ""}${m.toFixed(3)}`;
         if (d > 0) moved.up.push(q.id);
         if (d < 0) moved.down.push(q.id);
+        if (d === 0 && m <= -0.02) moved.thinner.push(q.id);
       } else {
         // 記載なしの質問は順位がないので、一番近い区切りの類似度（高いほど「記載あり」と誤りやすい）を比べる
         before = off.top.toFixed(3);
@@ -133,7 +140,9 @@ async function main() {
       }
       log(`| ${q.id} | ${q.type === "answerable" ? "答えあり" : "記載なし"} | ${q.question} | ${before} | ${after} | ${diff} |`);
     }
-    log(`\n順位が上がった質問：${moved.up.join(" ") || "なし"} ／ 下がった質問：${moved.down.join(" ") || "なし"}`);
+    log(
+      `\n順位が上がった質問：${moved.up.join(" ") || "なし"} ／ 下がった質問：${moved.down.join(" ") || "なし"} ／ 順位は同じで余裕が0.02以上減った質問：${moved.thinner.join(" ") || "なし"}`,
+    );
   }
 
   const n = Number(process.argv[process.argv.indexOf("--answer") + 1] ?? 0);
