@@ -4,11 +4,13 @@
  *   npm run eval -- --answer 3   … 答えありの先頭3問と記載なしの全問を、実際にAIに回答させて表示（ANSWER_MODEL_ID が必要）
  *   EVIDENCE_THRESHOLD=0.25 …    AIを呼ぶ前のふるい分けの下限を変える（既定は DEFAULT_EVIDENCE_THRESHOLD）
  *   EMBEDDER=local npm run eval  … AWSを呼ばずに試す
+ * 用語集を使う設定（既定）のときは、用語集のあり・なしで各質問の正解の順位も比べる。
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { answerWithEvidence, createAnswerer } from "../src/lib/answer";
 import { NO_ANSWER } from "../src/lib/prompt";
+import { toEmbeddingInput } from "../src/lib/chunk";
 import { createEmbedder } from "../src/lib/embed";
 import { evaluateQuestion, hitRate, suggestThreshold, type EvalQuestion, type EvalRow } from "../src/lib/evaluate";
 import {
@@ -19,7 +21,9 @@ import {
   rankSections,
   semanticScores,
   type Hit,
+  type StoredChunk,
 } from "../src/lib/search";
+import { loadSampleGlossary } from "../src/lib/samples";
 import { indexMode, loadIndex } from "./build-index";
 
 const K = 3;
@@ -38,9 +42,10 @@ async function main() {
   const { questions } = JSON.parse(raw) as { questions: EvalQuestion[] };
 
   // 質問ごとに「意味の近さ」と「言葉の重なり」を1回だけ計算し、混ぜ方を変えて比べる
-  const scored: { q: EvalQuestion; semantic: number[]; lexical: number[] }[] = [];
+  const scored: { q: EvalQuestion; vector: number[]; semantic: number[]; lexical: number[] }[] = [];
   for (const q of questions) {
-    scored.push({ q, semantic: semanticScores(items, await embedder.embed(q.question)), lexical: lexicalScores(items, q.question) });
+    const vector = await embedder.embed(q.question);
+    scored.push({ q, vector, semantic: semanticScores(items, vector), lexical: lexicalScores(items, q.question) });
   }
   const runWith = (weight: number) =>
     scored.map(({ q, semantic, lexical }) => {
@@ -81,6 +86,54 @@ async function main() {
     log(
       `| ${w} | ${(hitRate(r) * 100).toFixed(0)}% | ${missed} | ${tw.minAnswerable.toFixed(3)} | ${tw.maxNoAnswer.toFixed(3)} | ${tw.threshold ?? "なし"} |`,
     );
+  }
+
+  if (process.env.GLOSSARY !== "off") {
+    // 用語集のあり・なしで、各質問の正解の順位（上位3件に限らない）を比べる。
+    // 関連語を足したことで、もともと当たっていた質問が押し出されていないかを見る。
+    const glossary = await loadSampleGlossary();
+    const plain: StoredChunk[] = [];
+    let changed = 0;
+    for (const it of items) {
+      const without = toEmbeddingInput(it, []);
+      if (toEmbeddingInput(it, glossary) === without) plain.push(it);
+      else {
+        plain.push({ ...it, vector: await embedder.embed(without) });
+        changed++;
+      }
+    }
+    const fullRank = (q: EvalQuestion, list: StoredChunk[], scores: number[]) => {
+      const hits = rankSections(list, scores, Number.POSITIVE_INFINITY);
+      const i = hits.findIndex((h) => q.expected.some((e) => e.doc === h.chunk.docId && e.heading === h.chunk.heading));
+      return { rank: i >= 0 ? i + 1 : null, top: hits[0]?.score ?? 0 };
+    };
+    const mix = (s: number[], l: number[]) => (weight > 0 ? mixScores(s, l, weight) : s);
+    log(`\n## 用語集のあり・なしの比較（関連語を足した区切り：${changed}件）\n`);
+    log(`関連語：${glossary.map((g) => `${g.term}→${g.aliases.join("、")}`).join(" ／ ")}\n`);
+    log("| id | 種類 | 質問 | 用語集なし | 用語集あり | 変化 |");
+    log("|---|---|---|---|---|---|");
+    const moved = { up: [] as string[], down: [] as string[] };
+    for (const { q, vector, lexical } of scored) {
+      const off = fullRank(q, plain, mix(semanticScores(plain, vector), lexical));
+      const on = fullRank(q, items, mix(semanticScores(items, vector), lexical));
+      let before: string, after: string, diff: string;
+      if (q.type === "answerable") {
+        before = off.rank === null ? "-" : `${off.rank}位`;
+        after = on.rank === null ? "-" : `${on.rank}位`;
+        const d = (off.rank ?? 99) - (on.rank ?? 99);
+        diff = d > 0 ? `↑${d}` : d < 0 ? `↓${-d}` : "→";
+        if (d > 0) moved.up.push(q.id);
+        if (d < 0) moved.down.push(q.id);
+      } else {
+        // 記載なしの質問は順位がないので、一番近い区切りの類似度（高いほど「記載あり」と誤りやすい）を比べる
+        before = off.top.toFixed(3);
+        after = on.top.toFixed(3);
+        const d = on.top - off.top;
+        diff = `${d >= 0 ? "+" : ""}${d.toFixed(3)}`;
+      }
+      log(`| ${q.id} | ${q.type === "answerable" ? "答えあり" : "記載なし"} | ${q.question} | ${before} | ${after} | ${diff} |`);
+    }
+    log(`\n順位が上がった質問：${moved.up.join(" ") || "なし"} ／ 下がった質問：${moved.down.join(" ") || "なし"}`);
   }
 
   const n = Number(process.argv[process.argv.indexOf("--answer") + 1] ?? 0);
