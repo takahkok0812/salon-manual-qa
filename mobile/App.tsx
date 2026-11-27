@@ -21,6 +21,7 @@ import {
   summarizeMemo,
   type SummaryResult,
 } from "../src/lib/summarize";
+import { ApiError, createApiClient, DEFAULT_API_BASE_URL } from "./src/api";
 import {
   filledCount,
   formatDate,
@@ -32,6 +33,12 @@ import {
 } from "./src/records";
 
 type Tab = "memo" | "records";
+type Mode = "offline" | "ai";
+
+// 本番の API。EXPO_PUBLIC_API_BASE_URL で差し替えられる
+const api = createApiClient(
+  process.env.EXPO_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL,
+);
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("memo");
@@ -95,6 +102,29 @@ function TabButton({
   );
 }
 
+function ModeButton({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.mode, active && styles.modeActive]}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: active }}
+    >
+      <Text style={[styles.modeText, active && styles.modeTextActive]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function MemoScreen({
   onSave,
 }: {
@@ -104,6 +134,9 @@ function MemoScreen({
   const [result, setResult] = useState<SummaryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Web 版（ブラウザ）は別オリジンの API を呼べないため、見本のみ
+  const [mode, setMode] = useState<Mode>("offline");
+  const [remaining, setRemaining] = useState<number | null>(null);
 
   const summarize = async () => {
     const checked = normalizeMemo(memo);
@@ -114,9 +147,18 @@ function MemoScreen({
     setError(null);
     setBusy(true);
     try {
-      // 見本は通信なし（キーワードで当てる）。本番は Generate を API 呼び出しに差し替える。
-      setResult(await summarizeMemo(checked.memo, fakeGenerate));
+      if (mode === "ai") {
+        // Web版と同じ API。ログイン・回数制限・AIの出力の検査はサーバー側で行う
+        const r = await api.summarize(checked.memo);
+        setResult(r.result);
+        if (r.remaining !== undefined) setRemaining(r.remaining);
+      } else {
+        // 見本は通信なし（キーワードで当てる）
+        setResult(await summarizeMemo(checked.memo, fakeGenerate));
+      }
     } catch (e) {
+      if (e instanceof ApiError && e.remaining !== undefined)
+        setRemaining(e.remaining);
       setError(e instanceof Error ? e.message : "まとめられませんでした");
     } finally {
       setBusy(false);
@@ -135,6 +177,24 @@ function MemoScreen({
         <Text style={styles.help}>
           キーボードのマイクで話した内容をそのまま入れてください。
         </Text>
+        {Platform.OS !== "web" && (
+          <View style={styles.modes}>
+            <ModeButton
+              label="見本（通信なし）"
+              active={mode === "offline"}
+              onPress={() => setMode("offline")}
+            />
+            <ModeButton
+              label={
+                remaining === null
+                  ? "AIでまとめる"
+                  : `AIでまとめる（今日あと${remaining}回）`
+              }
+              active={mode === "ai"}
+              onPress={() => setMode("ai")}
+            />
+          </View>
+        )}
         <TextInput
           style={styles.input}
           multiline
@@ -314,6 +374,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: C.text,
   },
+  modes: { flexDirection: "row", gap: 8 },
+  mode: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  modeActive: { borderColor: C.primary, backgroundColor: "#edf2ff" },
+  modeText: { fontSize: 13, color: C.sub },
+  modeTextActive: { color: C.primary, fontWeight: "700" },
   counter: { alignSelf: "flex-end", color: C.sub, fontSize: 12 },
   row: { flexDirection: "row", gap: 8 },
   primary: {
